@@ -1,0 +1,20 @@
+Studio FD Performance
+
+Este aplicativo inclui componentes de terceiros, com suas licencas na pasta
+licencas. As bibliotecas Qt/PySide6 sao distribuidas sem modificacoes e carregadas
+como bibliotecas separadas. Seus respectivos direitos e licencas permanecem com
+os autores. Nao ha restricao adicional a modificacao/reengenharia dessas
+bibliotecas para os fins permitidos pelas respectivas licencas.
+
+Python: https://www.python.org/ (PSF License)
+Qt / PySide6 / shiboken6: https://code.qt.io/pyside/pyside-setup.git/
+Qt sources: https://download.qt.io/official_releases/qt/
+SQLAlchemy: https://github.com/sqlalchemy/sqlalchemy (MIT)
+Alembic: https://github.com/sqlalchemy/alembic (MIT)
+Greenlet: https://github.com/python-greenlet/greenlet
+Mako: https://github.com/sqlalchemy/mako (MIT)
+MarkupSafe: https://github.com/pallets/markupsafe (BSD)
+typing_extensions: https://github.com/python/typing_extensions
+
+Empacotamento: PyInstaller (GPL com excecao para os aplicativos empacotados).
+Instalador: Inno Setup, Jordan Russell e Martijn Laan.

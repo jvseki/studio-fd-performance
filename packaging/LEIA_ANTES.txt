@@ -1,0 +1,23 @@
+STUDIO FD PERFORMANCE
+
+Esta e a segunda etapa do sistema, ainda em desenvolvimento.
+
+Disponivel: Dashboard, cadastro e ficha de alunos, pesquisa por nome e
+letra, cadastro de planos e abertura de conversa pelo WhatsApp.
+Ainda pendente: agenda, pagamentos, caixa, contratos, relatorios e
+exportacao/restauracao de backup. Informar uma mensalidade nao gera cobranca.
+
+Os cadastros funcionam sem internet e nao exigem Python instalado.
+Somente o contato pelo WhatsApp precisa de internet e de uma conta
+conectada. O usuario revisa o texto e envia a mensagem pelo WhatsApp.
+Esta distribuicao destina-se a Windows 10/11 de 64 bits.
+
+O instalador copia o programa para a pasta de aplicativos do seu usuario.
+Os dados ficam em LOCALAPPDATA\StudioFDPerformance\data e nao sao
+removidos ao desinstalar. Atualizacoes preservam essa pasta.
+Feche o Studio antes de atualizar e use a mesma conta Windows.
+Na primeira abertura de uma nova versao, os dados existentes sao copiados
+para data\backups antes das migracoes. Nao volte para instaladores antigos.
+
+Esta versao ainda nao possui assinatura digital comercial.
+Avisos do Windows podem ocorrer. Nao e necessario desativar o antivirus.
