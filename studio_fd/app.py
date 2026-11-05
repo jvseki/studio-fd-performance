@@ -5,7 +5,7 @@ from logging.handlers import RotatingFileHandler
 import sys
 
 from PySide6.QtCore import QLocale, QLockFile
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from studio_fd import __version__
@@ -15,18 +15,22 @@ from studio_fd.services.dashboard_service import DashboardService
 from studio_fd.services.plan_service import PlanService
 from studio_fd.services.student_service import StudentService
 from studio_fd.services.update_service import prepare_update, confirm_version
-from studio_fd.utils.paths import AppPaths
+from studio_fd.utils.paths import AppPaths, resource_root
+from studio_fd.utils.windows import identify_windows_app
 from studio_fd.views.main_window import MainWindow
-from studio_fd.views.theme import STYLESHEET
+from studio_fd.views.theme import STYLESHEET, apply_palette
 
 
 def run() -> int:
+    identify_windows_app()
     app = QApplication(sys.argv)
     app.setApplicationName("Studio FD Performance")
     app.setOrganizationName("StudioFDPerformance")
     app.setApplicationVersion(__version__)
+    app.setWindowIcon(QIcon(str(resource_root() / "assets" / "app.ico")))
     app.setStyle("Fusion")
     app.setFont(QFont("Segoe UI", 10))
+    apply_palette(app)
     app.setStyleSheet(STYLESHEET)
     QLocale.setDefault(QLocale(QLocale.Language.Portuguese, QLocale.Country.Brazil))
     engine = None

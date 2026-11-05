@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QGroupBox, QHBoxLayout, QLineEdit,
     QPushButton, QSpinBox, QTextEdit, QWidget,
@@ -7,21 +8,20 @@ from studio_fd.services.plan_service import PlanService
 from studio_fd.services.records import StudentInput, StudentRecord
 from studio_fd.services.student_service import StudentService
 from studio_fd.utils.formatting import display_phone
-from studio_fd.views.dashboard import label
 from studio_fd.views.plans import PlanDialog
 from studio_fd.widgets.forms import FormDialog, MoneyInput, OptionalDate, form_layout
 
 
 class StudentDialog(FormDialog):
     def __init__(self, service: StudentService, plans: PlanService, record: StudentRecord | None = None, parent=None):
-        super().__init__("Editar aluno" if record else "Novo aluno", "Salvar aluno", parent)
+        super().__init__("Editar aluno" if record else "Novo aluno", "Salvar aluno", parent,
+                         "Nome e telefone bastam para começar. O restante é opcional.")
         self.service = service
         self.plans_service = plans
         self.record = record
         self.saved_record = None
         self.resize(700, 750)
-        self.body.addWidget(label("Para começar, preencha o nome e o telefone. Os demais dados são opcionais.", "caption"))
-        basic = QGroupBox("Aluno")
+        basic = QGroupBox("ALUNO")
         form = form_layout(basic)
         self.name = QLineEdit(record.full_name if record else "")
         self.name.setPlaceholderText("Nome completo")
@@ -36,7 +36,7 @@ class StudentDialog(FormDialog):
         form.addRow("", self.active)
         self.body.addWidget(basic)
 
-        contract = QGroupBox("Plano e mensalidade · opcional")
+        contract = QGroupBox("PLANO E MENSALIDADE")
         contract_form = form_layout(contract)
         plan_row = QWidget()
         row_layout = QHBoxLayout(plan_row)
@@ -74,11 +74,13 @@ class StudentDialog(FormDialog):
         self.load_plans(record.plan_id if record else None)
         self.plan.activated.connect(self.apply_plan_price)
 
+        self.body.addSpacing(14)
         self.more_button = QPushButton("+ Mostrar dados opcionais")
+        self.more_button.setObjectName("ghostButton")
         self.more_button.setCheckable(True)
         self.more_button.setAutoDefault(False)
-        self.body.addWidget(self.more_button)
-        self.extra = QGroupBox("Mais informações")
+        self.body.addWidget(self.more_button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.extra = QGroupBox("MAIS INFORMAÇÕES")
         extra_form = form_layout(self.extra)
         self.birth = OptionalDate(record.birth_date if record else None, past_only=True)
         self.cpf = QLineEdit(record.cpf or "" if record else "")

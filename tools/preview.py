@@ -19,7 +19,7 @@ from studio_fd.services.student_service import StudentService
 from studio_fd.services.records import PlanInput, StudentInput
 from studio_fd.utils.paths import AppPaths, resource_root
 from studio_fd.views.main_window import MainWindow
-from studio_fd.views.theme import STYLESHEET
+from studio_fd.views.theme import STYLESHEET, apply_palette
 from studio_fd.views.student_form import StudentDialog
 from studio_fd.views.student_profile import StudentProfile
 
@@ -30,6 +30,7 @@ def main() -> None:
     for filename in ("segoeui.ttf", "segoeuib.ttf", "georgia.ttf"):
         QFontDatabase.addApplicationFont(str(Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / filename))
     app.setStyle("Fusion")
+    apply_palette(app)
     app.setStyleSheet(STYLESHEET)
     with TemporaryDirectory() as directory:
         paths = AppPaths(Path(directory))

@@ -3,17 +3,19 @@ import string
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView, QButtonGroup, QComboBox, QDialog, QGridLayout, QHeaderView,
-    QHBoxLayout, QLineEdit, QMessageBox, QPushButton, QTableWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget,
+    QButtonGroup, QComboBox, QDialog, QHBoxLayout, QLineEdit, QMessageBox,
+    QPushButton, QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from studio_fd.services.plan_service import PlanService
 from studio_fd.services.student_service import StudentService
-from studio_fd.utils.formatting import display_phone
-from studio_fd.views.dashboard import label
+from studio_fd.utils.formatting import brl, display_phone, search_key
+from studio_fd.views import theme
 from studio_fd.views.student_form import StudentDialog
 from studio_fd.views.student_profile import StudentProfile
+from studio_fd.widgets.data_table import DataTable
+from studio_fd.widgets.icons import icon
+from studio_fd.widgets.visuals import icon_button, icon_label, label, page_header, page_layout, panel
 
 
 class StudentsView(QWidget):
@@ -24,61 +26,77 @@ class StudentsView(QWidget):
         self.service = service
         self.plans = plans
         self.letter = ""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 28, 32, 24)
-        layout.setSpacing(16)
-        header = QHBoxLayout()
-        header.addWidget(label("Alunos", "title"), 1)
-        create = QPushButton("+ Novo aluno")
-        create.setObjectName("primaryButton")
+        layout = page_layout(self)
+        self.subtitle = label("")
+        create = icon_button("Novo aluno", "plus", "primaryButton")
         create.clicked.connect(self.create)
-        header.addWidget(create)
-        layout.addLayout(header)
-        layout.addWidget(label("Encontre o aluno e clique no nome para abrir a ficha."))
-        filters = QHBoxLayout()
+        layout.addLayout(page_header("CADASTROS", "Alunos", self.subtitle, [create]))
+
+        card, body = panel(margins=(0, 0, 0, 0), spacing=0)
+        toolbar = QHBoxLayout()
+        toolbar.setContentsMargins(18, 16, 18, 12)
+        toolbar.setSpacing(10)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Pesquisar aluno...")
+        self.search.setObjectName("searchField")
+        self.search.setPlaceholderText("Pesquisar aluno pelo nome...")
         self.search.setClearButtonEnabled(True)
         self.search.setAccessibleName("Pesquisar aluno pelo nome")
+        self.search.addAction(icon("search", theme.TEXT_3, 16), QLineEdit.ActionPosition.LeadingPosition)
         self.status = QComboBox()
         self.status.addItem("Todos os status", None)
         self.status.addItem("Somente ativos", True)
         self.status.addItem("Somente inativos", False)
-        filters.addWidget(self.search, 1)
-        filters.addWidget(self.status)
-        clear = QPushButton("Limpar filtros")
+        clear = QPushButton("Limpar")
+        clear.setObjectName("ghostButton")
         clear.clicked.connect(self.clear_filters)
-        filters.addWidget(clear)
-        layout.addLayout(filters)
-        alphabet = QGridLayout()
-        alphabet.setSpacing(5)
+        toolbar.addWidget(self.search, 1)
+        toolbar.addWidget(self.status)
+        toolbar.addWidget(clear)
+        body.addLayout(toolbar)
+
+        alphabet = QHBoxLayout()
+        alphabet.setContentsMargins(14, 0, 14, 10)
+        alphabet.setSpacing(1)
         self.letters = QButtonGroup(self)
         self.letters.setExclusive(True)
         for index, letter in enumerate(["Todos", *string.ascii_uppercase]):
             button = QPushButton(letter)
             button.setObjectName("letterButton")
             button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            if index == 0:
+                button.setProperty("wide", True)
             self.letters.addButton(button, index)
-            alphabet.addWidget(button, index // 14, index % 14)
+            alphabet.addWidget(button, 0 if index == 0 else 1)
         self.letters.button(0).setChecked(True)
         self.letters.idClicked.connect(self.select_letter)
-        layout.addLayout(alphabet)
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["ALUNO", "TELEFONE", "PLANO", "STATUS"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.verticalHeader().hide()
-        self.table.verticalHeader().setDefaultSectionSize(50)
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        body.addLayout(alphabet)
+
+        self.content = QStackedWidget()
+        self.table = DataTable(["Aluno", "Telefone", "Plano", "Mensalidade", "Vencimento", "Status"],
+                               [3.2, 1.8, 1.9, 1.4, 1.2, 1.1])
         self.table.cellClicked.connect(self.open_row)
         self.table.itemActivated.connect(lambda item: self.open_row(item.row(), item.column()))
-        layout.addWidget(self.table, 1)
+        self.content.addWidget(self.table)
+        empty = QWidget()
+        empty_layout = QVBoxLayout(empty)
+        empty_layout.setContentsMargins(24, 48, 24, 48)
+        empty_layout.setSpacing(10)
+        empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_layout.addWidget(icon_label("users", theme.TEXT_3, 28), 0, Qt.AlignmentFlag.AlignHCenter)
+        self.empty_title = label("", "sectionTitle")
+        self.empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_text = label("", "caption")
+        self.empty_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_layout.addWidget(self.empty_title)
+        empty_layout.addWidget(self.empty_text)
+        self.content.addWidget(empty)
+        self.content.setMinimumHeight(360)
+        body.addWidget(self.content, 1)
+        layout.addWidget(card, 1)
         self.feedback = label("", "caption")
         layout.addWidget(self.feedback)
-        retry = QPushButton("Atualizar lista")
-        retry.clicked.connect(self.refresh)
-        layout.addWidget(retry, alignment=Qt.AlignmentFlag.AlignLeft)
+
         self.search_timer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.setInterval(180)
@@ -101,21 +119,42 @@ class StudentsView(QWidget):
     def refresh(self, *_args) -> None:
         self.search_timer.stop()
         try:
+            everyone = self.service.list()
             records = self.service.list(self.search.text(), self.letter, self.status.currentData())
         except Exception:
             logging.getLogger(__name__).exception("Falha ao consultar alunos")
             self.table.setRowCount(0)
-            self.feedback.setText("Não foi possível carregar os alunos. Clique em Atualizar lista para tentar novamente.")
+            self.feedback.setText("Não foi possível carregar os alunos. Troque de tela e volte para tentar novamente.")
             return
-        self.table.setRowCount(len(records))
-        for row, record in enumerate(records):
-            values = [record.full_name, display_phone(record.phone), record.plan_name or "Sem plano", "Ativo" if record.active else "Inativo"]
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(value)
-                item.setData(Qt.ItemDataRole.UserRole, record.id)
-                self.table.setItem(row, column, item)
+        initials = {search_key(record.full_name)[:1].upper() for record in everyone}
+        for index, letter in enumerate(string.ascii_uppercase, start=1):
+            button = self.letters.button(index)
+            empty = letter not in initials
+            if button.property("empty") != empty:
+                button.setProperty("empty", empty)
+                button.style().unpolish(button)
+                button.style().polish(button)
+        active = sum(1 for record in everyone if record.active)
+        self.subtitle.setText(f"{len(everyone)} cadastrado(s)  ·  {active} ativo(s)" if everyone else "Nenhum aluno cadastrado ainda")
+        self.table.set_rows([
+            (record.id, [
+                (record.full_name, "avatar"),
+                (display_phone(record.phone), "muted"),
+                (record.plan_name or "Sem plano", "" if record.plan_name else "muted"),
+                (brl(record.monthly_fee_cents) if record.monthly_fee_cents is not None else "—", ""),
+                (f"Dia {record.due_day}" if record.due_day else "—", "muted"),
+                ("Ativo" if record.active else "Inativo", "pill:success" if record.active else "pill:muted"),
+            ]) for record in records
+        ])
         filtered = bool(self.search.text().strip() or self.letter or self.status.currentData() is not None)
-        self.feedback.setText(f"{len(records)} aluno(s) encontrado(s)." if records else ("Nenhum aluno com esses filtros. Tente Limpar filtros." if filtered else "Seu primeiro aluno começa aqui. Clique em + Novo aluno."))
+        if records:
+            self.content.setCurrentIndex(0)
+            self.feedback.setText(f"{len(records)} aluno(s) na lista  ·  clique para abrir a ficha" )
+        else:
+            self.content.setCurrentIndex(1)
+            self.empty_title.setText("Nenhum aluno encontrado" if filtered else "Seu primeiro aluno começa aqui")
+            self.empty_text.setText("Ajuste a pesquisa ou clique em Limpar." if filtered else "Clique em Novo aluno para cadastrar nome, telefone e plano.")
+            self.feedback.setText("")
 
     def create(self) -> None:
         try:

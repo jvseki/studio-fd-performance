@@ -70,6 +70,10 @@ id_ed25519*
 # Material comercial/pessoal mantido somente no computador
 private/
 privado/
+apresentacao/
+*.mp4
+*.mov
+*.wav
 docs/LEMBRETE_DO_PROJETO.md
 docs/*.png
 docs/*.jpg

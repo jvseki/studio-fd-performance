@@ -6,7 +6,7 @@ import logging
 
 from PySide6.QtCore import QDate, QLocale, Qt
 from PySide6.QtWidgets import (
-    QCheckBox, QDateEdit, QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout,
+    QCheckBox, QDateEdit, QDialog, QDoubleSpinBox, QFormLayout, QFrame, QHBoxLayout,
     QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
@@ -52,7 +52,8 @@ class OptionalDate(QWidget):
 
 def form_layout(widget: QWidget) -> QFormLayout:
     form = QFormLayout(widget)
-    form.setSpacing(12)
+    form.setHorizontalSpacing(18)
+    form.setVerticalSpacing(12)
     form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
     form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     return form
@@ -67,39 +68,55 @@ def fit_dialog(dialog: QDialog) -> None:
 
 
 class FormDialog(QDialog):
-    def __init__(self, title: str, save_text: str, parent=None):
+    def __init__(self, title: str, save_text: str, parent=None, subtitle: str = ""):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.resize(660, 640)
         self.setMinimumSize(560, 420)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        header = QVBoxLayout()
+        header.setContentsMargins(28, 24, 28, 4)
+        header.setSpacing(4)
         heading = QLabel(title)
-        heading.setObjectName("sectionTitle")
-        layout.addWidget(heading)
+        heading.setObjectName("dialogTitle")
+        header.addWidget(heading)
+        self.subtitle = QLabel(subtitle)
+        self.subtitle.setObjectName("caption")
+        self.subtitle.setWordWrap(True)
+        self.subtitle.setVisible(bool(subtitle))
+        header.addWidget(self.subtitle)
+        layout.addLayout(header)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         body = QWidget()
         self.body = QVBoxLayout(body)
-        self.body.setContentsMargins(0, 12, 12, 12)
-        self.body.setSpacing(18)
+        self.body.setContentsMargins(28, 4, 22, 20)
+        self.body.setSpacing(4)
         scroll.setWidget(body)
         layout.addWidget(scroll, 1)
+        footer = QFrame()
+        footer.setObjectName("dialogFooter")
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(28, 14, 28, 14)
+        footer_layout.setSpacing(10)
         self.feedback = QLabel()
         self.feedback.setObjectName("formError")
         self.feedback.setWordWrap(True)
         self.feedback.setTextFormat(Qt.TextFormat.PlainText)
-        layout.addWidget(self.feedback)
-        buttons = QHBoxLayout()
-        buttons.addStretch()
+        footer_layout.addWidget(self.feedback, 1)
         cancel = QPushButton("Cancelar")
+        cancel.setObjectName("ghostButton")
+        cancel.setAutoDefault(False)
         cancel.clicked.connect(self.reject)
         self.save_button = QPushButton(save_text)
         self.save_button.setObjectName("primaryButton")
         self.save_button.setDefault(True)
-        buttons.addWidget(cancel)
-        buttons.addWidget(self.save_button)
-        layout.addLayout(buttons)
+        footer_layout.addWidget(cancel)
+        footer_layout.addWidget(self.save_button)
+        layout.addWidget(footer)
 
     def showEvent(self, event) -> None:
         fit_dialog(self)
