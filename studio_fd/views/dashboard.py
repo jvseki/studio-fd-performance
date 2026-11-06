@@ -6,6 +6,7 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
 
 from studio_fd.services.dashboard_service import DashboardService, DashboardSummary
+from studio_fd.utils.dates import parse_time
 from studio_fd.utils.formatting import brl
 from studio_fd.views import theme
 from studio_fd.widgets.metric_card import MetricCard
@@ -39,9 +40,10 @@ class PlanBars(QWidget):
 
     ROW = 44
 
-    def __init__(self):
+    def __init__(self, formatter=str):
         super().__init__()
         self.rows: list[tuple[str, int]] = []
+        self.formatter = formatter
 
     def set_rows(self, rows: list[tuple[str, int]]) -> None:
         self.rows = rows[:6]
@@ -62,9 +64,9 @@ class PlanBars(QWidget):
             y = index * self.ROW
             painter.setFont(font)
             painter.setPen(QColor(theme.TEXT_2))
-            painter.drawText(QRectF(0, y, self.width() - 40, 20), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name)
+            painter.drawText(QRectF(0, y, self.width() - 124, 20), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name)
             painter.setPen(QColor(theme.TEXT))
-            painter.drawText(QRectF(self.width() - 40, y, 40, 20), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, str(count))
+            painter.drawText(QRectF(self.width() - 120, y, 120, 20), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, self.formatter(count))
             track = QRectF(0, y + 26, self.width(), 6)
             path = QPainterPath()
             path.addRoundedRect(track, 3, 3)
@@ -74,8 +76,71 @@ class PlanBars(QWidget):
             painter.fillPath(fill, QColor(theme.GOLD if index == 0 else "#8C7650"))
 
 
+class DayAgenda(QWidget):
+    """Agenda do dia em linhas compactas: horário | personal 1 | personal 2."""
+
+    ROW = 34
+
+    def __init__(self):
+        super().__init__()
+        self.rows: list[tuple[str, list[str | None]]] = []
+        self.trainers: list[str] = []
+        self.now_index = -1
+
+    def set_rows(self, rows, trainers, now_index: int) -> None:
+        self.rows, self.trainers, self.now_index = rows, trainers, now_index
+        self.setMinimumHeight((len(rows) + 1) * self.ROW)
+        self.updateGeometry()
+        self.update()
+
+    def sizeHint(self) -> QSize:
+        return QSize(400, (len(self.rows) + 1) * self.ROW)
+
+    def paintEvent(self, _event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        columns = max(1, len(self.trainers))
+        time_width = 76
+        width = (self.width() - time_width) / columns
+        small = QFont("Segoe UI")
+        small.setPixelSize(10)
+        small.setWeight(QFont.Weight.DemiBold)
+        painter.setFont(small)
+        painter.setPen(QColor(theme.TEXT_3))
+        painter.drawText(QRectF(0, 0, time_width, self.ROW - 8), Qt.AlignmentFlag.AlignVCenter, "HORÁRIO")
+        for index, name in enumerate(self.trainers):
+            painter.drawText(QRectF(time_width + index * width + 6, 0, width, self.ROW - 8), Qt.AlignmentFlag.AlignVCenter, name.upper())
+        text_font = QFont("Segoe UI")
+        text_font.setPixelSize(12)
+        for row, (time, names) in enumerate(self.rows):
+            y = (row + 1) * self.ROW
+            now = row == self.now_index
+            bold = QFont(text_font)
+            bold.setWeight(QFont.Weight.DemiBold)
+            painter.setFont(bold)
+            painter.setPen(QColor(theme.GOLD if now else theme.TEXT_2))
+            painter.drawText(QRectF(0, y, time_width, self.ROW - 6), Qt.AlignmentFlag.AlignVCenter, time + ("  •" if now else ""))
+            for index, name in enumerate(names):
+                cell = QRectF(time_width + index * width + 2, y + 2, width - 6, self.ROW - 8)
+                path = QPainterPath()
+                path.addRoundedRect(cell, 7, 7)
+                if name:
+                    painter.fillPath(path, QColor(theme.GOLD_TINT if now else theme.RAISED))
+                    painter.setFont(bold)
+                    painter.setPen(QColor(theme.TEXT))
+                    text = painter.fontMetrics().elidedText(name, Qt.TextElideMode.ElideRight, int(cell.width() - 20))
+                    painter.drawText(cell.adjusted(10, 0, -6, 0), Qt.AlignmentFlag.AlignVCenter, text)
+                else:
+                    painter.setPen(QColor(theme.BORDER))
+                    painter.drawPath(path)
+                    painter.setFont(text_font)
+                    painter.setPen(QColor(theme.TEXT_3))
+                    painter.drawText(cell.adjusted(10, 0, -6, 0), Qt.AlignmentFlag.AlignVCenter, "Livre")
+
+
 class DashboardView(QWidget):
     open_students = Signal()
+    open_page = Signal(int)
 
     def __init__(self, service: DashboardService):
         super().__init__()
@@ -101,10 +166,10 @@ class DashboardView(QWidget):
         grid = QGridLayout()
         grid.setSpacing(14)
         self.active_card = MetricCard("Alunos ativos", "0", "", accent=True, icon_name="users")
-        self.revenue_card = MetricCard("Receita mensal prevista", "R$ 0,00", "Soma das mensalidades combinadas", icon_name="trend")
-        self.ticket_card = MetricCard("Ticket médio", "—", "Por aluno com mensalidade", icon_name="tag")
-        self.due_card = MetricCard("Vencimentos na semana", "0", "Próximos 7 dias", icon_name="clock")
-        for column, card in enumerate((self.active_card, self.revenue_card, self.ticket_card, self.due_card)):
+        self.today_card = MetricCard("Agendados hoje", "0", "", icon_name="calendar")
+        self.revenue_card = MetricCard("Recebido no mês", "R$ 0,00", "", icon_name="trend")
+        self.due_card = MetricCard("Mensalidades atrasadas", "0", "", icon_name="clock")
+        for column, card in enumerate((self.active_card, self.today_card, self.revenue_card, self.due_card)):
             grid.addWidget(card, 0, column)
             grid.setColumnStretch(column, 1)
         layout.addLayout(grid)
@@ -135,17 +200,21 @@ class DashboardView(QWidget):
         row.addWidget(plans_panel, 2)
         layout.addLayout(row)
 
-        agenda, agenda_layout = panel("softPanel", (22, 20, 22, 20), 10)
+        agenda, agenda_layout = panel(margins=(22, 18, 22, 18), spacing=12)
         agenda_top = QHBoxLayout()
         agenda_top.setSpacing(12)
         agenda_top.addWidget(icon_label("calendar", theme.GOLD, 18))
-        agenda_top.addWidget(label("Agenda do dia", "sectionTitle"))
-        agenda_top.addWidget(pill("Próxima etapa", "gold"))
+        agenda_top.addWidget(label("Agenda de hoje", "sectionTitle"))
+        self.capacity = label("", "caption", wrap=False)
+        agenda_top.addWidget(self.capacity)
         agenda_top.addStretch()
-        capacity = label("2 personais  ·  até 2 alunos por horário", "caption", wrap=False)
-        agenda_top.addWidget(capacity)
+        open_agenda = icon_button("Abrir agenda", "arrow", "ghostButton")
+        open_agenda.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        open_agenda.clicked.connect(lambda: self.open_page.emit(1))
+        agenda_top.addWidget(open_agenda)
         agenda_layout.addLayout(agenda_top)
-        agenda_layout.addWidget(label("Os horários do dia aparecerão aqui, com os dois personais lado a lado e o bloqueio automático quando o horário lotar."))
+        self.day_agenda = DayAgenda()
+        agenda_layout.addWidget(self.day_agenda)
         layout.addWidget(agenda)
 
         self.feedback = label("", "caption")
@@ -171,9 +240,21 @@ class DashboardView(QWidget):
         inactive = max(0, summary.total_students - summary.active_students)
         self.active_card.set_value(str(summary.active_students),
                                    f"{inactive} inativo(s) no cadastro" if inactive else "Todos os cadastros ativos")
-        self.revenue_card.set_value(brl(summary.monthly_revenue_cents))
-        self.ticket_card.set_value(brl(summary.average_fee_cents) if summary.average_fee_cents else "—")
-        self.due_card.set_value(str(summary.due_this_week))
+        self.today_card.set_value(str(summary.today_booked),
+                                  f"{summary.today_capacity - summary.today_booked} vaga(s) livre(s) de {summary.today_capacity}")
+        self.revenue_card.set_value(brl(summary.received_month_cents), f"Previsto: {brl(summary.monthly_revenue_cents)} em mensalidades")
+        self.due_card.set_value(str(summary.overdue_count),
+                                f"{brl(summary.overdue_cents)} em aberto" if summary.overdue_count else "Nenhuma em atraso")
+        now = datetime.now()
+        minutes = now.hour * 60 + now.minute
+        times = [parse_time(time) for time, _names in summary.today_rows]
+        now_index = max((index for index, value in enumerate(times) if value <= minutes), default=-1)
+        if now_index == len(times) - 1 and times and minutes - times[-1] > 120:
+            now_index = -1
+        start = max(0, now_index - 1)
+        visible = summary.today_rows[start:start + 8] or summary.today_rows[:8]
+        self.day_agenda.set_rows(visible, summary.trainer_names, now_index - start if now_index >= 0 else -1)
+        self.capacity.setText(f"{summary.today_booked} de {summary.today_capacity} vagas  ·  até {len(summary.trainer_names)} alunos por horário")
 
         clear(self.due_list)
         if not summary.upcoming:

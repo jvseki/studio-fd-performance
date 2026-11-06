@@ -15,7 +15,7 @@ class StudentRepository:
 
     def list(self, query: str = "", letter: str = "", active: bool | None = None) -> list[Student]:
         name_key = func.search_key(Student.full_name)
-        statement = select(Student).options(joinedload(Student.plan))
+        statement = select(Student).options(joinedload(Student.plan), joinedload(Student.trainer))
         if query.strip():
             statement = statement.where(name_key.contains(search_key(query.strip()), autoescape=True))
         if letter:
@@ -25,7 +25,7 @@ class StudentRepository:
         return list(self.session.scalars(statement.order_by(name_key, Student.id)))
 
     def get(self, student_id: int) -> Student | None:
-        statement = select(Student).options(joinedload(Student.plan)).where(Student.id == student_id)
+        statement = select(Student).options(joinedload(Student.plan), joinedload(Student.trainer)).where(Student.id == student_id)
         return self.session.scalar(statement)
 
     def with_cpf(self, cpf: str) -> Student | None:

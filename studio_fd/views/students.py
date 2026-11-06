@@ -26,6 +26,7 @@ class StudentsView(QWidget):
         self.service = service
         self.plans = plans
         self.letter = ""
+        self.extras = None  # janela principal: dá acesso à agenda, financeiro e contratos na ficha
         layout = page_layout(self)
         self.subtitle = label("")
         create = icon_button("Novo aluno", "plus", "primaryButton")
@@ -174,7 +175,7 @@ class StudentsView(QWidget):
 
     def open_profile(self, student_id: int) -> None:
         try:
-            profile = StudentProfile(student_id, self.service, self.plans, self)
+            profile = StudentProfile(student_id, self.service, self.plans, self, extras=self.extras)
             profile.changed.connect(self.on_changed)
             profile.exec()
         except Exception:

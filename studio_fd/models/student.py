@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from studio_fd.database.base import Base
 from studio_fd.models.plan import Plan
+from studio_fd.models.trainer import Trainer
 
 
 class Student(Base):
@@ -29,4 +30,6 @@ class Student(Base):
     monthly_fee_cents: Mapped[int | None] = mapped_column(Integer)
     starts_on: Mapped[date | None] = mapped_column(Date)
     due_day: Mapped[int | None] = mapped_column(Integer)
+    trainer_id: Mapped[int | None] = mapped_column(ForeignKey("trainers.id", ondelete="SET NULL"))
     plan: Mapped[Plan | None] = relationship()
+    trainer: Mapped[Trainer | None] = relationship()

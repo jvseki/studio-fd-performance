@@ -32,6 +32,7 @@ exportacoes/
 *.log
 *.bak
 *.backup
+*.fdbkp
 *.zip
 *.7z
 *.rar

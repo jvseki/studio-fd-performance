@@ -47,7 +47,7 @@ class UpdateTests(unittest.TestCase):
         with ZipFile(archive_path) as archive:
             manifest = json.loads(archive.read("manifest.json"))
             self.assertEqual(manifest["previous_version"], "0.2.0")
-            self.assertEqual(manifest["schema_revision"], "0001")
+            self.assertEqual(manifest["schema_revision"], "0002")
             self.assertEqual(set(manifest["files"]), {"studio_fd.db", "contratos/contrato.pdf",
                                                      "configuracoes/preferencias.json", "configuracoes/" + STATE_FILE})
             for name, digest in manifest["files"].items():

@@ -4,11 +4,12 @@ Cada célula guarda o texto normal (para pesquisa e testes) e um "papel"
 visual em ROLE_STYLE: strong, muted, avatar ou pill:<tom>.
 """
 
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QStyledItemDelegate, QTableWidget, QTableWidgetItem
 
 from studio_fd.views import theme
+from studio_fd.widgets.motion import smooth
 from studio_fd.widgets.visuals import paint_avatar
 
 ROLE_STYLE = Qt.ItemDataRole.UserRole + 1
@@ -16,6 +17,7 @@ PILL_TONES = {
     "success": ("#16231B", "#23392A", theme.SUCCESS),
     "muted": (theme.RAISED, theme.BORDER, theme.TEXT_3),
     "gold": (theme.GOLD_TINT, theme.GOLD_LINE, theme.GOLD),
+    "danger": (theme.DANGER_TINT, theme.DANGER_LINE, theme.DANGER),
 }
 
 
@@ -50,6 +52,9 @@ class RowDelegate(QStyledItemDelegate):
             font.setWeight(QFont.Weight.DemiBold)
         elif style == "muted":
             color = theme.TEXT_2
+        elif style in ("income", "expense"):
+            font.setWeight(QFont.Weight.DemiBold)
+            color = theme.SUCCESS if style == "income" else theme.DANGER
         if style.startswith("pill:"):
             background, border, foreground = PILL_TONES.get(style[5:], PILL_TONES["muted"])
             font.setPixelSize(11)
@@ -74,6 +79,8 @@ class RowDelegate(QStyledItemDelegate):
 
 
 class DataTable(QTableWidget):
+    row_menu = Signal(object, QPoint)  # (chave da linha, posição global) no clique direito
+
     def __init__(self, headers: list[str], ratios: list[float], row_height: int = 56):
         super().__init__(0, len(headers))
         self.ratios = ratios
@@ -96,6 +103,19 @@ class DataTable(QTableWidget):
         self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setItemDelegate(RowDelegate(self))
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._context_menu)
+        smooth(self)
+
+    def key(self, row: int):
+        item = self.item(row, 0)
+        return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _context_menu(self, position) -> None:
+        row = self.rowAt(position.y())
+        if row >= 0:
+            self.selectRow(row)
+            self.row_menu.emit(self.key(row), self.viewport().mapToGlobal(position))
 
     def set_rows(self, rows: list[tuple[object, list[tuple[str, str]]]]) -> None:
         """rows = [(id, [(texto, papel), ...]), ...]"""

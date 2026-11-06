@@ -30,7 +30,7 @@ class DatabaseTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_initial_schema_matches_models(self):
-        self.assertEqual(set(inspect(self.engine).get_table_names()), {"alembic_version", "plans", "students"})
+        self.assertEqual(set(inspect(self.engine).get_table_names()), {"alembic_version", "plans", "students", "trainers", "settings", "appointments", "payments", "cash_entries", "contracts"})
         with self.engine.connect() as connection:
             self.assertEqual(compare_metadata(MigrationContext.configure(connection), Base.metadata), [])
             self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")

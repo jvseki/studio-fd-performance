@@ -73,7 +73,7 @@ def main() -> None:
         database = data / "studio_fd.db"
         with closing(sqlite3.connect(database)) as connection, connection:
             assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-            assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0001"
+            assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "0002"
             connection.execute("INSERT INTO students (full_name, phone, registered_on, active) VALUES ('Teste isolado', '', '2026-11-03', 1)")
         launch_and_close(executable, data)
         with closing(sqlite3.connect(database)) as connection:

@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from studio_fd.models import Student
+from studio_fd.models import Student, Trainer
 from studio_fd.repositories.plan_repository import PlanRepository
 from studio_fd.repositories.student_repository import StudentRepository
 from studio_fd.services.records import StudentInput, StudentRecord
@@ -12,9 +12,11 @@ from studio_fd.utils.formatting import normalize_cpf, normalize_phone
 
 
 def student_record(student: Student) -> StudentRecord:
-    fields = {name: getattr(student, name) for name in StudentRecord.__dataclass_fields__ if name not in ("plan_name", "workouts_per_week")}
+    derived = ("plan_name", "workouts_per_week", "trainer_name")
+    fields = {name: getattr(student, name) for name in StudentRecord.__dataclass_fields__ if name not in derived}
     return StudentRecord(**fields, plan_name=student.plan.name if student.plan else None,
-                         workouts_per_week=student.plan.workouts_per_week if student.plan else None)
+                         workouts_per_week=student.plan.workouts_per_week if student.plan else None,
+                         trainer_name=student.trainer.name if student.trainer else None)
 
 
 class StudentService:
@@ -65,12 +67,14 @@ class StudentService:
                         raise ValueError("O plano escolhido não existe mais. Escolha outro plano.")
                     if not plan.active and student.plan_id != plan.id:
                         raise ValueError("Esse plano está inativo. Escolha um plano ativo.")
+                if data.trainer_id is not None and session.get(Trainer, data.trainer_id) is None:
+                    raise ValueError("O personal escolhido não existe mais. Escolha outro.")
                 for name, value in values.items():
                     setattr(student, name, value)
                 session.add(student)
                 session.flush()
-                # Recarrega a relação quando o plano de uma ficha existente muda.
-                session.expire(student, ["plan"])
+                # Recarrega as relações quando o plano ou o personal mudam.
+                session.expire(student, ["plan", "trainer"])
                 return student_record(student)
         except IntegrityError as error:
             raise ValueError("Não foi possível salvar. Confira se o CPF já está cadastrado e atualize a lista de planos.") from error

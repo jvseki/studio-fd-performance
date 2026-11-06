@@ -31,7 +31,11 @@ GOLD_TINT = "#1F1B14"
 GOLD_LINE = "#3B3324"
 
 SUCCESS = "#8DBF9B"
+SUCCESS_TINT = "#16231B"
+SUCCESS_LINE = "#23392A"
 DANGER = "#E39385"
+DANGER_TINT = "#2A1815"
+DANGER_LINE = "#4A2A24"
 
 
 def apply_palette(app) -> None:
@@ -87,9 +91,13 @@ QLabel#pill { border-radius: 9px; padding: 2px 9px; font-size: 11px; font-weight
 QLabel#pill[tone="success"] { background: #16231B; color: @SUCCESS@; border: 1px solid #23392A; }
 QLabel#pill[tone="muted"] { background: @RAISED@; color: @TEXT_3@; border: 1px solid @BORDER@; }
 QLabel#pill[tone="gold"] { background: @GOLD_TINT@; color: @GOLD@; border: 1px solid @GOLD_LINE@; }
+QLabel#pill[tone="danger"] { background: @DANGER_TINT@; color: @DANGER@; border: 1px solid @DANGER_LINE@; }
 
 /* Superfícies */
-QFrame#panel, QFrame#metricCard { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 12px; }
+QFrame#panel, QFrame#metricCard { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 14px; }
+QFrame#metricCard:hover { border-color: #2E2B26; }
+QFrame#heroPanel { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #17150F, stop:0.55 @SURFACE@, stop:1 @SURFACE@);
+    border: 1px solid @GOLD_LINE@; border-radius: 16px; }
 QFrame#softPanel { background: @SURFACE@; border: 1px dashed @BORDER_STRONG@; border-radius: 12px; }
 QFrame#planCard { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 12px; }
 QFrame#planCard:hover { border-color: @GOLD_LINE@; background: #16161A; }
@@ -118,6 +126,18 @@ QPushButton#letterButton[empty="true"] { color: #45443F; }
 QPushButton#letterButton:hover { background: @RAISED@; color: @TEXT@; }
 QPushButton#letterButton:checked { background: @GOLD_TINT@; color: @GOLD@; }
 QPushButton#letterButton[wide="true"] { padding: 5px 10px; }
+QPushButton#iconButton { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 10px; padding: 0; }
+QPushButton#iconButton:hover { background: @RAISED@; border-color: @GOLD_LINE@; }
+QPushButton#dateLabel { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 10px; padding: 7px 16px;
+    font-size: 13px; font-weight: 600; text-align: center; }
+QPushButton#dateLabel:hover { border-color: @GOLD_LINE@; background: @RAISED@; }
+QPushButton#dangerButton { background: @DANGER_TINT@; border-color: @DANGER_LINE@; color: @DANGER@; }
+QPushButton#dangerButton:hover { background: #351E1A; border-color: @DANGER@; }
+QPushButton#sidebarToggle { background: transparent; border: none; border-radius: 8px; padding: 0; }
+QPushButton#sidebarToggle:hover { background: @RAISED@; }
+QPushButton#paletteHint { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 9px; padding: 7px 12px;
+    color: @TEXT_3@; font-weight: 400; text-align: left; }
+QPushButton#paletteHint:hover { border-color: @GOLD_LINE@; color: @TEXT_2@; }
 
 /* Campos */
 QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QTextEdit, QPlainTextEdit {
@@ -143,9 +163,25 @@ QCheckBox:hover { color: @TEXT@; }
 QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #4A4A51; border-radius: 4px; background: @RAISED@; }
 QCheckBox::indicator:hover { border-color: @GOLD@; }
 QCheckBox::indicator:checked { background: @GOLD@; border-color: @GOLD@; image: url("@ASSETS@/check.svg"); }
-QCalendarWidget QWidget { background: @RAISED@; color: @TEXT@; }
-QCalendarWidget QToolButton { background: transparent; color: @TEXT@; border: none; padding: 4px 8px; font-weight: 600; }
-QCalendarWidget QAbstractItemView { selection-background-color: @GOLD@; selection-color: @GOLD_INK@; }
+QCalendarWidget QWidget { background: @RAISED@; color: @TEXT@; alternate-background-color: @RAISED@; }
+QCalendarWidget QWidget#qt_calendar_navigationbar { background: @RAISED@; border-bottom: 1px solid @BORDER@; }
+QCalendarWidget QToolButton { background: transparent; color: @TEXT@; border: none; padding: 6px 10px; font-weight: 600; border-radius: 6px; }
+QCalendarWidget QToolButton:hover { background: @HOVER@; }
+QCalendarWidget QToolButton::menu-indicator { image: none; }
+QCalendarWidget QAbstractItemView { selection-background-color: @GOLD@; selection-color: @GOLD_INK@; outline: none; }
+QCalendarWidget QAbstractItemView:disabled { color: @TEXT_3@; }
+
+/* Menus de ação e listas suspensas */
+QMenu { background: @RAISED@; border: 1px solid @BORDER_STRONG@; border-radius: 12px; padding: 6px; }
+QMenu::item { padding: 8px 18px 8px 12px; border-radius: 7px; color: @TEXT@; background: transparent; }
+QMenu::item:selected { background: @HOVER@; color: @GOLD_HOVER@; }
+QMenu::item:disabled { color: @TEXT_3@; }
+QMenu::icon { padding-left: 8px; }
+QMenu::separator { height: 1px; background: @BORDER@; margin: 5px 8px; }
+QListView#completerPopup, QListWidget#paletteList { background: @RAISED@; border: 1px solid @BORDER_STRONG@; border-radius: 10px;
+    padding: 4px; outline: none; }
+QListView#completerPopup::item { padding: 7px 10px; border-radius: 6px; }
+QListView#completerPopup::item:selected { background: @GOLD_TINT@; color: @GOLD@; }
 
 /* Seções dos formulários: título discreto acima de um cartão */
 QGroupBox { background: @SURFACE@; border: 1px solid @BORDER@; border-radius: 12px;

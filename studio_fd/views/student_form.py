@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 
 from studio_fd.services.plan_service import PlanService
 from studio_fd.services.records import StudentInput, StudentRecord
+from studio_fd.services.settings_service import SettingsService
 from studio_fd.services.student_service import StudentService
 from studio_fd.utils.formatting import display_phone
 from studio_fd.views.plans import PlanDialog
@@ -70,6 +71,14 @@ class StudentDialog(FormDialog):
         contract_form.addRow("Mensalidade combinada", fee_row)
         contract_form.addRow("Dia do vencimento", self.due_day)
         contract_form.addRow("Data de início", self.starts)
+        self.trainer = QComboBox()
+        self.trainer.addItem("Sem personal definido", None)
+        for trainer in SettingsService(service.sessions).trainers():
+            if trainer.active or (record and record.trainer_id == trainer.id):
+                self.trainer.addItem(trainer.name, trainer.id)
+        if record and record.trainer_id:
+            self.trainer.setCurrentIndex(max(0, self.trainer.findData(record.trainer_id)))
+        contract_form.addRow("Personal responsável", self.trainer)
         self.body.addWidget(contract)
         self.load_plans(record.plan_id if record else None)
         self.plan.activated.connect(self.apply_plan_price)
@@ -141,6 +150,7 @@ class StudentDialog(FormDialog):
                 notes=self.notes.toPlainText(), plan_id=self.plan.currentData(),
                 monthly_fee_cents=self.fee.cents() if self.fee_enabled.isChecked() else None,
                 starts_on=self.starts.value(), due_day=self.due_day.value() or None,
+                trainer_id=self.trainer.currentData(),
             )
             self.saved_record = self.service.save(data, self.record.id if self.record else None)
         except Exception as error:
