@@ -842,9 +842,12 @@ def mix_audio(path: Path, timeline, total: float, voices) -> None:
         music_r[shift:] += music_r[:-shift] * gain
     music_peak = max(np.abs(music_l).max(), np.abs(music_r).max(), 1e-6)
     music_l, music_r = music_l / music_peak, music_r / music_peak
-    envelope = np.abs(voice)
-    kernel = np.ones(int(0.25 * rate)) / int(0.25 * rate)
-    activity = np.clip(np.convolve(envelope, kernel, mode="same") * 12, 0, 1)
+    # Média móvel por soma acumulada (convolução direta seria lenta demais em 9 minutos de áudio).
+    window = int(0.25 * rate)
+    cumulative = np.concatenate([[0.0], np.cumsum(np.abs(voice))])
+    moving = (cumulative[window:] - cumulative[:-window]) / window
+    moving = np.concatenate([np.zeros(window // 2), moving, np.zeros(size - len(moving) - window // 2)])
+    activity = np.clip(moving * 12, 0, 1)
     duck = 0.16 - 0.10 * activity
     fade = np.minimum(1, t / 2) * np.clip((total - t) / 2.5, 0, 1)
     left = (voice * 0.95 + music_l * duck) * fade
