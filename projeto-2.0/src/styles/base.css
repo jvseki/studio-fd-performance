@@ -1,0 +1,96 @@
+/* Identidade: grafite, dourado só como destaque, serifa para títulos. */
+:root {
+  --bg: #0b0b0c;
+  --surface: #131315;
+  --raised: #1a1a1d;
+  --hover: #212125;
+  --line: #26262a;
+  --line-strong: #34343a;
+  --text: #f3f1ec;
+  --muted: #a3a09a;
+  --faint: #6c6a65;
+  --gold: #c9a96b;
+  --gold-soft: #d9bd85;
+  --gold-ink: #17130c;
+  --gold-tint: #1f1b14;
+  --gold-line: #3b3324;
+  --ok: #8dbf9b;
+  --ok-tint: #16231b;
+  --danger: #e39385;
+  --danger-tint: #2a1815;
+  --serif: "Instrument Serif", Georgia, serif;
+  --sans: "Manrope Variable", "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --radius: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); color-scheme: dark; -webkit-text-size-adjust: 100%; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+::selection { background: var(--gold); color: var(--gold-ink); }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+
+.serif { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; }
+.kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.num { font-variant-numeric: tabular-nums; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 20px; border-radius: 999px; font-weight: 700; font-size: 14px;
+  border: 1px solid var(--line-strong); background: var(--raised); color: var(--text);
+  transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), color .2s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--hover); border-color: #45454c; }
+.btn:active { transform: scale(.98); }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
+.btn.gold:hover { background: var(--gold-soft); border-color: var(--gold-soft); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--text); background: var(--raised); }
+.btn.block { width: 100%; height: 52px; font-size: 15px; }
+.btn.sm { height: 34px; padding: 0 14px; font-size: 13px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; border: 1px solid var(--line); background: var(--raised); color: var(--muted);
+  white-space: nowrap;
+}
+.pill.ok { background: var(--ok-tint); border-color: #23392a; color: var(--ok); }
+.pill.gold { background: var(--gold-tint); border-color: var(--gold-line); color: var(--gold); }
+.pill.danger { background: var(--danger-tint); border-color: #4a2a24; color: var(--danger); }
+
+.field { display: grid; gap: 7px; }
+.field > span { font-size: 12px; font-weight: 600; color: var(--muted); }
+.input {
+  width: 100%; height: 50px; padding: 0 15px; border-radius: 12px; font-size: 16px;
+  background: var(--raised); border: 1px solid var(--line-strong); outline: none;
+  transition: border-color .2s, background .2s;
+}
+.input::placeholder { color: var(--faint); }
+.input:hover { border-color: #45454c; }
+.input:focus { border-color: var(--gold); background: #1d1c1b; }
+.input.bad { border-color: var(--danger); }
+.field small { font-size: 12px; color: var(--danger); min-height: 0; }
+
+.avatar {
+  flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--gold-tint); border: 1px solid var(--gold-line); color: var(--gold);
+  font-size: 12px; font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

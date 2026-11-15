@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env.local
+video/
+# A regra data/ da raiz protege bancos locais; aqui há apenas código fictício.
+!src/data/
+!src/data/**
+# Contexto pessoal e condições comerciais, mantidos somente neste computador.
+PROMPT_CODEX.md

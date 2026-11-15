@@ -1,0 +1,20 @@
+.chat { min-height: 100svh; display: flex; flex-direction: column; background: #0d1114; }
+.chat header { display: flex; align-items: center; gap: 12px; padding: 16px 14px; background: #171d21; border-bottom: 1px solid #222a30; }
+.chat header div { display: grid; }
+.chat header b { font-size: 16px; }
+.chat header i { font-style: normal; font-size: 12px; color: #8fa3ad; }
+.chat-avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--gold-tint); border: 1px solid var(--gold-line); color: var(--gold); font-size: 18px; }
+.chat-body { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 18px 14px; }
+.chat-day { align-self: center; margin-bottom: 8px; padding: 5px 12px; border-radius: 8px; background: #171d21; font-size: 12px; color: #8fa3ad; }
+.bubble { position: relative; max-width: 86%; margin: 0; padding: 10px 12px 22px; border-radius: 4px 16px 16px 16px; background: #1d262b; font-size: 16px; line-height: 1.4; }
+.bubble time { position: absolute; right: 10px; bottom: 5px; font-size: 11px; color: #8fa3ad; }
+.bubble.link { padding: 6px 6px 22px; }
+.bubble.link a { display: grid; gap: 8px; }
+.link-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #141a1e; }
+.link-card > span:last-child { display: grid; }
+.link-card b { font-size: 15px; }
+.link-card i { font-style: normal; font-size: 12px; color: #8fa3ad; }
+.link-mark { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 10px; background: var(--gold-tint); border: 1px solid var(--gold-line); color: var(--gold); font-size: 20px; }
+.bubble.link u { padding: 0 6px; color: #6cb8e6; font-size: 15px; text-underline-offset: 3px; word-break: break-all; }
+.chat footer { padding: 12px 14px 20px; }
+.chat footer span { display: block; height: 46px; line-height: 46px; padding: 0 18px; border-radius: 999px; background: #171d21; color: #6f838d; font-size: 15px; }
