@@ -272,7 +272,7 @@ class AgendaView(QWidget):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        QTimer.singleShot(120, self.scroll_to_now)
+        QTimer.singleShot(120, self, self.scroll_to_now)
 
     def scroll_to_now(self) -> None:
         parent = self.parentWidget()

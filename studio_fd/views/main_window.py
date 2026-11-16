@@ -147,7 +147,7 @@ class Sidebar(QWidget):
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        QTimer.singleShot(0, lambda: self.owner.sync_indicator(False))
+        QTimer.singleShot(0, self.owner, lambda: self.owner.sync_indicator(False))  # cancelado se a janela sumir
 
 
 class MainWindow(QMainWindow):
@@ -333,7 +333,7 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        QTimer.singleShot(0, lambda: self.sync_indicator(False))
+        QTimer.singleShot(0, self, lambda: self.sync_indicator(False))
 
     def toggle_sidebar(self) -> None:
         compact = self.side_scroll.width() > (EXPANDED + COLLAPSED) / 2

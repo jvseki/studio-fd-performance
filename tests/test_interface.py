@@ -70,5 +70,18 @@ class InterfaceTests(unittest.TestCase):
                 engine.dispose()
 
 
+def tearDownModule():
+    """Fecha e libera as janelas deste módulo antes do próximo: evita falha do Qt ao encerrar."""
+    from PySide6.QtCore import QCoreApplication, QEvent
+    app = QApplication.instance()
+    if app is None:
+        return
+    for widget in app.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
+
+
 if __name__ == "__main__":
     unittest.main()
