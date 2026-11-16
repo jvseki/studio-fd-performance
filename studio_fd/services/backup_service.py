@@ -4,6 +4,7 @@ O .fdbkp é um ZIP com:
     manifest.json       produto, formato, versão do app, revisão do banco, SHA-256 de cada arquivo
     studio_fd.db        cópia consistente do banco (API de backup do SQLite)
     contratos/...       PDFs dos contratos
+    anamneses/...       PDFs das anamneses
     configuracoes/...   preferências locais
 
 Restaurar acontece em duas fases para nunca perder dados:
@@ -33,9 +34,10 @@ from studio_fd.utils.paths import AppPaths, resource_root
 EXTENSION = ".fdbkp"
 FORMAT = 1
 PENDING = "restauracao_pendente"
+DATA_FOLDERS = ("contratos", "anamneses", "configuracoes")
 AUTO_FOLDER = "automaticos"
 COUNTED_TABLES = {"students": "alunos", "payments": "mensalidades", "appointments": "agendamentos",
-                  "contracts": "contratos", "cash_entries": "movimentações"}
+                  "contracts": "contratos", "cash_entries": "movimentações", "anamneses": "anamneses"}
 
 
 @dataclass(frozen=True)
@@ -69,7 +71,7 @@ def _safe_name(name: str) -> bool:
     parts = PurePosixPath(name).parts
     if not parts or name.startswith("/") or "\\" in name or ".." in parts or ":" in name:
         return False
-    return name in ("manifest.json", "studio_fd.db") or parts[0] in ("contratos", "configuracoes")
+    return name in ("manifest.json", "studio_fd.db") or parts[0] in DATA_FOLDERS
 
 
 def _counts(database: Path) -> dict[str, int]:
@@ -99,7 +101,7 @@ class BackupService:
 
     # Exportar -----------------------------------------------------------
     def _data_files(self):
-        for directory in (self.paths.contracts, self.paths.settings):
+        for directory in (self.paths.contracts, self.paths.anamneses, self.paths.settings):
             if not directory.exists():
                 continue
             for source in sorted(directory.rglob("*")):
@@ -228,17 +230,19 @@ class BackupService:
         for suffix in ("-wal", "-shm", "-journal"):
             Path(str(paths.database) + suffix).unlink(missing_ok=True)
         os.replace(pending / "studio_fd.db", paths.database)
-        restored_contracts = pending / "contratos"
-        old = paths.root / "contratos_anteriores"
-        if old.exists():
-            shutil.rmtree(old)
-        if paths.contracts.exists():
-            paths.contracts.rename(old)
-        if restored_contracts.exists():
-            restored_contracts.rename(paths.contracts)
-        else:
-            paths.contracts.mkdir()
-        shutil.rmtree(old, ignore_errors=True)
+        # Pastas de PDFs: a do backup substitui a atual (backup antigo sem anamneses deixa a pasta vazia).
+        for folder_name, current in (("contratos", paths.contracts), ("anamneses", paths.anamneses)):
+            restored = pending / folder_name
+            old = paths.root / f"{folder_name}_anteriores"
+            if old.exists():
+                shutil.rmtree(old)
+            if current.exists():
+                current.rename(old)
+            if restored.exists():
+                restored.rename(current)
+            else:
+                current.mkdir()
+            shutil.rmtree(old, ignore_errors=True)
         restored_settings = pending / "configuracoes"
         if restored_settings.exists():
             for source in restored_settings.rglob("*"):

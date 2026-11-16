@@ -36,7 +36,9 @@ def read_installed_version(paths: AppPaths) -> str | None:
 
 
 def _source_files(paths: AppPaths):
-    for directory in (paths.contracts, paths.settings):
+    for directory in (paths.contracts, paths.anamneses, paths.settings):
+        if not directory.exists():
+            continue
         if directory.is_symlink() or directory.is_junction():
             raise ValueError("A cópia de atualização não aceita links em contratos ou configurações.")
         for source in sorted(directory.rglob("*")):

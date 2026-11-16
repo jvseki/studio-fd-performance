@@ -36,6 +36,10 @@ class AppPaths:
         return self.root / "contratos"
 
     @property
+    def anamneses(self) -> Path:
+        return self.root / "anamneses"
+
+    @property
     def backups(self) -> Path:
         return self.root / "backups"
 
@@ -48,5 +52,5 @@ class AppPaths:
         return self.root / "logs"
 
     def ensure_directories(self) -> None:
-        for directory in (self.root, self.contracts, self.backups, self.settings, self.logs):
+        for directory in (self.root, self.contracts, self.anamneses, self.backups, self.settings, self.logs):
             directory.mkdir(parents=True, exist_ok=True)

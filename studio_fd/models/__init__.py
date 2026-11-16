@@ -7,6 +7,7 @@ from studio_fd.models.appointment import Appointment
 from studio_fd.models.payment import Payment
 from studio_fd.models.cash import CashEntry
 from studio_fd.models.contract import Contract
+from studio_fd.models.anamnesis import Anamnesis
 from studio_fd.models.setting import Setting
 
-__all__ = ["Appointment", "CashEntry", "Contract", "Payment", "Plan", "Setting", "Student", "Trainer"]
+__all__ = ["Anamnesis", "Appointment", "CashEntry", "Contract", "Payment", "Plan", "Setting", "Student", "Trainer"]

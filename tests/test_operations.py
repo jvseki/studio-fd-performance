@@ -138,7 +138,7 @@ class OperationsTests(unittest.TestCase):
         exported = backups.export(Path(self.temp.name) / "saida" / backups.default_name(date(2026, 11, 5)))
         self.assertEqual(exported.name, "StudioFD_Backup_2026-11-05.fdbkp")
         info = backups.inspect(exported)
-        self.assertEqual((info.counts["alunos"], info.files, info.schema_revision), (3, 1, "0002"))
+        self.assertEqual((info.counts["alunos"], info.files, info.schema_revision), (3, 1, "0003"))
 
         # Dados mudam depois do backup; a restauração deve voltar ao estado salvo.
         self.students.save(StudentInput("Depois", "18999999999"))
