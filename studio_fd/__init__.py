@@ -1,3 +1,3 @@
 """Aplicativo desktop do Studio FD Performance."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
