@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from studio_fd import __version__
 from studio_fd.services.agenda_service import AgendaService
+from studio_fd.services.anamnesis_service import AnamnesisService
 from studio_fd.services.backup_service import BackupService
 from studio_fd.services.cash_service import CashService
 from studio_fd.services.contract_service import ContractService
@@ -164,6 +165,7 @@ class MainWindow(QMainWindow):
         self.finance_service = FinanceService(sessions)
         self.cash_service = CashService(sessions)
         self.contract_service = ContractService(sessions, paths)
+        self.anamnesis_service = AnamnesisService(sessions, paths)
         self.settings_service = SettingsService(sessions)
         self.backup_service = BackupService(paths, __version__)
 

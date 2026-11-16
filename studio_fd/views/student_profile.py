@@ -1,8 +1,11 @@
 from datetime import date
 
-from PySide6.QtCore import Qt, Signal
+from pathlib import Path
+
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QMessageBox,
+    QDialog, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QMessageBox,
     QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
@@ -11,6 +14,7 @@ from studio_fd.services.student_service import StudentService
 from studio_fd.utils.dates import month_label
 from studio_fd.utils.formatting import brl, display_phone
 from studio_fd.views import theme
+from studio_fd.services.anamnesis_service import AnamnesisRecord
 from studio_fd.views.agenda import BookingDialog
 from studio_fd.views.contracts import ContractDialog, open_contract
 from studio_fd.views.dashboard import clear
@@ -129,7 +133,8 @@ class StudentProfile(QDialog):
         if extras is not None:
             for key, title, button_text, icon_name in (("schedule", "Horários", "Agendar", "calendar"),
                                                        ("payments", "Histórico financeiro", "", "wallet"),
-                                                       ("contracts", "Contrato", "Anexar contrato", "file")):
+                                                       ("contracts", "Contrato", "Anexar contrato", "file"),
+                                                       ("anamneses", "Anamneses", "Anexar PDF", "file")):
                 box, box_layout = panel(margins=(22, 16, 22, 18), spacing=8)
                 top = QHBoxLayout()
                 top.setSpacing(10)
@@ -240,6 +245,76 @@ class StudentProfile(QDialog):
         if not contracts:
             box.addWidget(label("Nenhum contrato anexado.", "caption"))
 
+        anamneses = extras.anamnesis_service.for_student(self.student_id)
+        box = self.sections["anamneses"]
+        for item in anamneses:
+            row = QHBoxLayout()
+            row.setSpacing(6)
+            names = QVBoxLayout()
+            names.setSpacing(1)
+            names.addWidget(plain(f"{item.attached_on:%d/%m/%Y}  ·  {item.original_name}", "fieldValue"))
+            if item.notes:
+                names.addWidget(plain(item.notes, "caption"))
+            row.addLayout(names, 1)
+            for text, icon_name, handler in (("Abrir", "external", self.open_anamnesis), ("Salvar cópia", "download", self.save_anamnesis),
+                                             ("Remover", "trash", self.remove_anamnesis)):
+                button = icon_button(text, icon_name, "ghostButton")
+                button.setAutoDefault(False)
+                button.clicked.connect(lambda _=False, r=item, h=handler: h(r))
+                row.addWidget(button)
+            box.addLayout(row)
+        if not anamneses:
+            box.addWidget(label("Nenhuma anamnese anexada. Use Anexar PDF para guardar a anamnese preenchida.", "caption"))
+
+    # Anamneses -------------------------------------------------------------
+    def attach_anamnesis(self) -> bool:
+        path, _ = QFileDialog.getOpenFileName(self, "Escolher anamnese em PDF", str(Path.home()), "PDF (*.pdf)")
+        if not path:
+            return False
+        note, accepted = QInputDialog.getText(self, "Observação", "Observação (opcional), por exemplo \"Avaliação inicial\":")
+        if not accepted:
+            return False
+        try:
+            self.extras.anamnesis_service.add(self.student_id, Path(path), notes=note)
+        except ValueError as error:
+            QMessageBox.warning(self, "Anamnese não anexada", str(error))
+            return False
+        except Exception:
+            QMessageBox.warning(self, "Anamnese não anexada", "Não foi possível anexar o PDF agora. Nada foi alterado na ficha.")
+            return False
+        return True
+
+    def open_anamnesis(self, record: AnamnesisRecord) -> None:
+        try:
+            target = self.extras.anamnesis_service.file(record)
+        except ValueError as error:
+            QMessageBox.warning(self, "Não foi possível abrir", str(error))
+            return
+        if not target.exists():
+            QMessageBox.warning(self, "Arquivo não encontrado",
+                                "O PDF desta anamnese não está na pasta do Studio. Restaure um backup para recuperá-lo.")
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(target))):
+            QMessageBox.warning(self, "Não foi possível abrir", "Instale um leitor de PDF para abrir a anamnese.")
+
+    def save_anamnesis(self, record: AnamnesisRecord) -> None:
+        destination, _ = QFileDialog.getSaveFileName(self, "Salvar cópia da anamnese", str(Path.home() / record.original_name), "PDF (*.pdf)")
+        if not destination:
+            return
+        try:
+            self.extras.anamnesis_service.save_copy(record, Path(destination))
+        except (ValueError, OSError) as error:
+            QMessageBox.warning(self, "Cópia não salva", str(error) if isinstance(error, ValueError) else "Confira a pasta escolhida e tente de novo.")
+
+    def remove_anamnesis(self, record: AnamnesisRecord) -> None:
+        answer = QMessageBox.question(self, "Remover anamnese",
+                                      f"Remover a anamnese de {record.attached_on:%d/%m/%Y} ({record.original_name})?\n"
+                                      "O PDF sai da ficha e vai para a pasta anamneses/_removidos.")
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.extras.anamnesis_service.delete(record.id)
+        self.refresh_sections()
+
     def section_action(self, key: str) -> None:
         extras = self.extras
         if key == "schedule":
@@ -250,6 +325,9 @@ class StudentProfile(QDialog):
             if not ContractDialog(extras.contract_service, self.service, self.student_id, self).exec():
                 return
             toast(self, "Contrato salvo")
+        elif key == "anamneses":
+            if not self.attach_anamnesis():
+                return
         self.refresh_sections()
         self.changed.emit()
 
