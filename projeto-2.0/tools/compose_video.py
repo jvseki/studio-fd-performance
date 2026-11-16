@@ -31,7 +31,7 @@ log = json.loads((OUT / "quadros/roteiro.json").read_text(encoding="utf-8"))
 CAPTIONS = {
     "conversa": ("1 · WhatsApp", "O aluno recebe o link.", "O Studio envia pelo próprio painel, com um toque."),
     "dados": ("2 · Cadastro", "Preenche os dados uma vez.", "CPF conferido na hora, campos com máscara."),
-    "plano": ("3 · Plano", "Confirma o plano combinado.", "Escolhe o período e o dia do vencimento."),
+    "plano": ("3 · Plano", "Confirma o plano combinado.", "O Studio define o plano, o valor e o vencimento."),
     "pix": ("4 · Pix", "Conheça o fluxo com Pix.", "QR Code de exemplo, sem cobrança real."),
     "cartao": ("5 · Cartão", "Simulação de cartão e parcelas.", "Dados fictícios para conhecer a experiência."),
     "processando": ("5 · Cartão", "Simulação de cartão e parcelas.", "Integração com Mercado Pago prevista para a próxima etapa."),

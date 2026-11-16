@@ -1,7 +1,7 @@
 # Studio FD Performance — versão web
 
-Protótipo local em React, TypeScript e Vite para apresentar o site do Studio,
-o fluxo de mensalidades pelo celular e o painel de gestão.
+Protótipo local em React, TypeScript e Vite para a gestão do Studio pelos donos.
+O aluno acessa somente o formulário individual enviado pelo Studio.
 
 **Somente demonstração:** os dados são fictícios e ficam no `localStorage` do
 navegador. Não há backend, autenticação, cobrança real ou sincronização entre
@@ -17,14 +17,22 @@ npm run dev
 
 Abra `http://localhost:5183`. Rotas de apresentação:
 
-- `/`: site, método, estrutura e planos.
+- `/`: abre diretamente o painel de gestão.
 - `/demo/conversa`: conversa fictícia com link para a mensalidade.
-- `/pagar/ana-mensalidade`: cadastro, escolha de plano, Pix/cartão simulados e recibo de exemplo.
+- `/pagar/ana-mensalidade`: dados, confirmação do plano definido pelo Studio, Pix/cartão simulados e recibo de exemplo.
 - `/painel`: visão geral, cobranças, agenda e alunos.
 
-As opções de período e vencimento ilustram a experiência futura; não criam
-matrícula ou reserva de horário. Planos casal são apresentados pelo valor total
-no site; a mensalidade individual usa metade desse valor.
+Em **Gerar link do aluno**, os donos escolhem aluno, plano, valor e vencimento.
+Depois podem copiar o link ou abrir o WhatsApp. O aluno não altera o plano ou o
+valor da cobrança no formulário. Planos casal usam metade do valor total por aluno.
+
+Nesta demonstração, os links e dados funcionam apenas no mesmo navegador/ambiente
+local. Enviar o endereço localhost para outro aparelho não transfere os dados.
+Acesso remoto exige hospedagem e backend; a separação das telas ainda não é
+controle de acesso. O painel precisará de autenticação antes de uso real.
+
+Visual: conteúdo claro, menu preto e dourado. O antigo Landing.tsx permanece
+como referência de design, sem rota pública ou entrada no aplicativo.
 
 Para reiniciar os exemplos, remova somente a chave `studiofd.v2.demo` do
 armazenamento local deste site nas ferramentas do navegador.
@@ -44,10 +52,15 @@ imagens em 1440 px e 412 px em `video/conferencia` e falha se detectar erros
 no console. A pasta `video`, dependências, builds e configurações pessoais não
 entram no Git.
 
-`check-demo.mjs` confere preços por aluno nos planos casal, bloqueio de CPF
-inválido, Pix simulado, atualização entre abas e ausência de chamadas externas.
+`check-demo.mjs` confere entrada na gestão, geração do link, preços por aluno,
+CPF inválido, plano definido pelo Studio, Pix simulado, atualização entre abas
+e busca sem chamadas externas. Os scripts aceitam `STUDIO_PREVIEW_URL` para
+testar em outra porta sem interromper o servidor de desenvolvimento.
 
 ## Gerar o vídeo
+
+O MP4 já existente retrata o visual anterior. Para apresentar o layout atual,
+refaça a gravação e a composição com os comandos abaixo.
 
 Com o preview aberto:
 

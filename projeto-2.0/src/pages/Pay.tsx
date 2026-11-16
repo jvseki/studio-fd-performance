@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Copy, CreditCard, Lock, QrCode, ShieldCheck } from "lucide-react";
 import QRCode from "qrcode";
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
-import { PLANS, plan as planOf, updateCharge, useDb, type Charge } from "../data/store";
+import { useParams } from "react-router-dom";
+import { plan as planOf, updateCharge, useDb, type Charge } from "../data/store";
 import { brl, cardBrand, dateBr, maskCard, maskCpf, maskDate, maskExpiry, maskPhone, onlyDigits, validCard, validCpf } from "../lib/format";
 import { EASE } from "../lib/motion";
 import { API_URL, confirmPix, createPix, DEMO_MODE, MP_PUBLIC_KEY, payWithCard, type PixCharge } from "../services/payments";
@@ -14,9 +14,8 @@ const USE_BRICK = !DEMO_MODE && Boolean(MP_PUBLIC_KEY && API_URL);
 import "../styles/pay.css";
 
 type Step = 0 | 1 | 2 | 3;
-interface Form { name: string; cpf: string; phone: string; email: string; birth: string; planId: string; dueDay: number; period: string; terms: boolean }
+interface Form { name: string; cpf: string; phone: string; email: string; birth: string; terms: boolean }
 const STEP_NAMES = ["Seus dados", "Seu plano", "Pagamento"];
-const PERIODS = ["Manhã", "Tarde", "Noite"];
 
 function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
@@ -191,7 +190,7 @@ export default function Pay() {
   const [tried, setTried] = useState(false);
   const [form, setForm] = useState<Form>(() => ({
     name: charge?.studentName ?? "", cpf: "", phone: charge?.phone ? maskPhone(charge.phone.replace(/^55/, "")) : "", email: "", birth: "",
-    planId: charge?.planId ?? "ind-3", dueDay: charge ? Number(charge.dueDate.slice(8, 10)) : 10, period: "Manhã", terms: false,
+    terms: false,
   }));
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -208,11 +207,11 @@ export default function Pay() {
       <div className="pay"><div className="pay-box missing">
         <h1 className="serif">Link não encontrado.</h1>
         <p className="muted">Este link de pagamento não existe ou já foi substituído. Peça um novo ao Studio.</p>
-        <Link className="btn" to="/">Ir para o site</Link>
+        <p className="hint">O formulário é enviado diretamente pelo Studio.</p>
       </div></div>
     );
   }
-  const selected = planOf(form.planId);
+  const selected = planOf(charge.planId);
   const alreadyPaid = Boolean(charge.paidAt) && !receipt;
   const go = (next: Step) => { setDirection(next > step ? 1 : -1); setTried(false); setStep(next); window.scrollTo({ top: 0 }); };
   const next = () => {
@@ -223,9 +222,7 @@ export default function Pay() {
       go(1);
     } else if (step === 1) {
       if (!form.terms) return;
-      const chosen = planOf(form.planId);
-      const keepPrice = chosen.id === charge.planId;
-      updateCharge(charge.id, { planId: chosen.id, cents: keepPrice ? charge.cents : chosen.cents / (chosen.kind === "casal" ? 2 : 1) });
+      // Plano, preço e vencimento pertencem ao link definido pelo Studio.
       go(2);
     }
   };
@@ -242,7 +239,7 @@ export default function Pay() {
       <div className="pay-grid">
         <aside className="summary">
           <p className="kicker">Mensalidade · {charge.reference}</p>
-          <div className="summary-price"><span className="serif num">{brl(step >= 2 ? charge.cents : selected.id === charge.planId ? charge.cents : selected.cents / (selected.kind === "casal" ? 2 : 1))}</span></div>
+          <div className="summary-price"><span className="serif num">{brl(charge.cents)}</span></div>
           <dl>
             <div><dt>Plano</dt><dd>{selected.name}</dd></div>
             <div><dt>Frequência</dt><dd>{selected.perWeek}x na semana</dd></div>
@@ -270,8 +267,8 @@ export default function Pay() {
                     transition={{ duration: 0.38, ease: EASE }}>
                     {step === 0 && (
                       <>
-                        <h1 className="serif">Vamos começar pelos <em>seus dados.</em></h1>
-                        <p className="lead">Leva menos de dois minutos. Eles ficam no seu cadastro do Studio.</p>
+                        <h1 className="serif">Confira seus dados</h1>
+                        <p className="lead">Este formulário foi preparado pelo Studio para você. Nesta demonstração, use dados fictícios.</p>
                         <div className="fields">
                           <Field label="Nome completo" error={tried ? errors.name : ""}>
                             <input className={`input ${tried && errors.name ? "bad" : ""}`} name="name" autoComplete="name" placeholder="Seu nome e sobrenome" value={form.name} onChange={(e) => set("name", e.target.value)} />
@@ -295,29 +292,18 @@ export default function Pay() {
                     )}
                     {step === 1 && (
                       <>
-                        <h1 className="serif">Confirme o <em>seu plano.</em></h1>
-                        <p className="lead">Este é o plano combinado com o Studio. Você pode trocar se preferir.</p>
-                        <div className="options" role="radiogroup" aria-label="Plano">
-                          {PLANS.filter((item) => item.kind === selected.kind).map((item) => (
-                            <button key={item.id} role="radio" aria-checked={form.planId === item.id} className={`option ${form.planId === item.id ? "on" : ""}`} onClick={() => set("planId", item.id)}>
-                              <span className="radio" />
-                              <span className="option-name"><b>{item.perWeek}x na semana</b><i>{item.kind === "casal" ? "Casal · valor por pessoa" : "Individual"}</i></span>
-                              <span className="num option-price">{brl(item.cents / (item.kind === "casal" ? 2 : 1)).replace(",00", "")}</span>
-                            </button>
-                          ))}
-                        </div>
-                        <p className="group-label">Melhor período para treinar</p>
-                        <div className="chips">
-                          {PERIODS.map((period) => <button key={period} className={form.period === period ? "chip-btn on" : "chip-btn"} onClick={() => set("period", period)}>{period}</button>)}
-                        </div>
-                        <p className="group-label">Dia do vencimento</p>
-                        <div className="chips">
-                          {[5, 10, 15].map((day) => <button key={day} className={form.dueDay === day ? "chip-btn on" : "chip-btn"} onClick={() => set("dueDay", day)}>Dia {day}</button>)}
-                        </div>
+                        <h1 className="serif">Seu plano no Studio</h1>
+                        <p className="lead">Confira o que foi combinado. Para alterar seu plano ou vencimento, fale com o Studio.</p>
+                        <dl className="receipt agreed-plan">
+                          <div><dt>Plano</dt><dd>{selected.name}</dd></div>
+                          <div><dt>Treinos</dt><dd>{selected.perWeek} vezes por semana</dd></div>
+                          <div><dt>Mensalidade{selected.kind === "casal" ? " por aluno" : ""}</dt><dd>{brl(charge.cents)}</dd></div>
+                          <div><dt>Vencimento</dt><dd>{dateBr(charge.dueDate)}</dd></div>
+                        </dl>
                         <label className={`terms ${tried && !form.terms ? "bad" : ""}`}>
                           <input type="checkbox" checked={form.terms} onChange={(e) => set("terms", e.target.checked)} />
                           <span className="box"><Check size={13} strokeWidth={3.2} /></span>
-                          <span>Li e aceito as regras do Studio sobre horários, faltas e cancelamento.</span>
+                          <span>Conferi os dados e o plano combinado com o Studio.</span>
                         </label>
                       </>
                     )}

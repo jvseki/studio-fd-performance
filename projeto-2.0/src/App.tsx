@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
-import Landing from "./pages/Landing";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 // Cada área carrega só quando é aberta: o aluno no celular não baixa o painel.
 const Pay = lazy(() => import("./pages/Pay"));
@@ -23,7 +22,7 @@ export default function App() {
     <Suspense fallback={null}>
       <ScrollTop />
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Navigate to="/painel" replace />} />
         <Route path="/pagar/:id" element={<Pay />} />
         <Route path="/demo/conversa" element={<Chat />} />
         <Route path="/painel" element={<PainelLayout />}>
@@ -32,7 +31,7 @@ export default function App() {
           <Route path="agenda" element={<Agenda />} />
           <Route path="alunos" element={<Students />} />
         </Route>
-        <Route path="*" element={<Landing />} />
+        <Route path="*" element={<div className="pay"><main className="pay-box missing"><h1>Página não encontrada</h1><p>Confira o endereço recebido. Se você é aluno, peça um novo link ao Studio.</p></main></div>} />
       </Routes>
     </Suspense>
   );

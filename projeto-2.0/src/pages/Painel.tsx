@@ -1,7 +1,7 @@
 import { animate, AnimatePresence, motion } from "motion/react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, LayoutGrid, Plus, RotateCcw, Search, Send, Undo2, Users, Wallet, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, LayoutGrid, Link2, Plus, RotateCcw, Search, Send, Undo2, Users, Wallet, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useSearchParams } from "react-router-dom";
 import {
   addSession, chargeStatus, createCharge, markPaid, markSent, payLink, plan, PLANS, resetDemo, setSessionStatus, TIMES, today, TRAINERS, undoPaid, useDb,
   type Charge, type ChargeStatus, type Session,
@@ -18,6 +18,11 @@ function Count({ value, money = false }: { value: number; money?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const previous = useRef(0);
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (ref.current) ref.current.textContent = money ? brl(value) : String(value);
+      previous.current = value;
+      return;
+    }
     const controls = animate(previous.current, value, {
       duration: 0.9, ease: EASE,
       onUpdate: (v) => { if (ref.current) ref.current.textContent = money ? brl(Math.round(v)) : String(Math.round(v)); },
@@ -38,19 +43,26 @@ export function PainelLayout() {
   return (
     <div className="painel">
       <aside className="side">
-        <Link to="/" className="brand"><span className="brand-mark serif">FD</span><span>Studio FD <i>Performance</i></span></Link>
-        <nav>
-          <NavLink end to="/painel"><LayoutGrid size={17} /> Visão geral</NavLink>
+        <Link to="/painel" className="brand"><span className="brand-mark serif">FD</span><span>Studio FD <i>Performance</i></span></Link>
+        <p className="nav-label">Gestão do Studio</p>
+        <nav aria-label="Menu do Studio">
+          <NavLink end to="/painel"><LayoutGrid size={17} /> Início</NavLink>
           <NavLink to="/painel/cobrancas"><Wallet size={17} /> Cobranças</NavLink>
           <NavLink to="/painel/agenda"><CalendarDays size={17} /> Agenda</NavLink>
           <NavLink to="/painel/alunos"><Users size={17} /> Alunos</NavLink>
         </nav>
         <div className="side-foot">
-          <p>Demonstração: os dados ficam só neste navegador.</p>
-          <button className="btn sm ghost" onClick={resetDemo}><RotateCcw size={14} /> Restaurar exemplo</button>
+          <span className="demo-tag">Versão de demonstração</span>
+          <p>Explore com dados de exemplo, salvos neste navegador.</p>
+          <button className="btn sm ghost" onClick={() => { if (window.confirm("Restaurar os exemplos? As alterações desta demonstração serão apagadas.")) resetDemo(); }}><RotateCcw size={14} /> Restaurar exemplos</button>
         </div>
+        <div className="studio-profile"><span className="avatar">FD</span><span><b>Douglas & Fran</b><small>Administração do Studio</small></span></div>
       </aside>
-      <main className="content"><Outlet /></main>
+      <div className="workspace">
+        <header className="workspace-bar"><span><span className="online-dot" /> Área de gestão</span><span className="workspace-note">Studio FD Performance <i> / </i> Andradina · SP</span></header>
+        <main className="content" id="conteudo"><Outlet /></main>
+        <footer className="workspace-footer">Studio FD Performance <span>Demonstração · pagamentos simulados</span></footer>
+      </div>
     </div>
   );
 }
@@ -59,7 +71,7 @@ function Page({ kicker, title, action, children }: { kicker: string; title: stri
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
       <header className="page-head">
-        <div><p className="kicker">{kicker}</p><h1 className="serif">{title}</h1></div>
+        <div><p className="kicker">{kicker}</p><h1>{title}</h1></div>
         {action}
       </header>
       {children}
@@ -82,15 +94,20 @@ export function Overview() {
     { label: "Atendimentos hoje", value: todaySessions.length, note: `de ${TIMES.length * TRAINERS.length} vagas` },
   ];
   return (
-    <Page kicker={new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })} title="Visão geral">
+    <Page kicker={new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })} title="Seu Studio, em dia." action={<Link className="btn gold" to="/painel/cobrancas?nova=1"><Plus size={17} /> Gerar link do aluno</Link>}>
+      <p className="page-description">Acompanhe os atendimentos e as mensalidades em um só lugar.</p>
       <div className="kpis">
         {kpis.map((kpi, index) => (
           <motion.div className={`kpi ${kpi.accent ? "accent" : ""}`} key={kpi.label} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.07, duration: 0.5, ease: EASE }}>
-            <span className="muted">{kpi.label}</span>
-            <strong className="serif"><Count value={kpi.value} money={kpi.money} /></strong>
+            <div className="kpi-label"><span>{kpi.label}</span>{index === 0 ? <ArrowDownLeft size={18} /> : index === 3 ? <CalendarDays size={18} /> : <Wallet size={18} />}</div>
+            <strong><Count value={kpi.value} money={kpi.money} /></strong>
             <span className="faint">{kpi.note}</span>
           </motion.div>
         ))}
+      </div>
+      <div className="daily-actions">
+        <Link to="/painel/agenda"><span className="action-icon"><CalendarDays size={21} /></span><span><b>Organizar os atendimentos</b><small>Veja horários e marque presenças</small></span><ArrowUpRight size={18} /></Link>
+        <Link to="/painel/cobrancas?filtro=atrasado"><span className="action-icon"><Wallet size={21} /></span><span><b>{overdue.length ? `${overdue.length} mensalidades precisam de atenção` : "Mensalidades em dia"}</b><small>Consulte pendências e envie o link ao aluno</small></span><ArrowUpRight size={18} /></Link>
       </div>
       <div className="split">
         <section className="panel">
@@ -133,27 +150,42 @@ function NewCharge({ onClose }: { onClose: (created?: Charge) => void }) {
   const [studentId, setStudentId] = useState(db.students[0]?.id ?? "");
   const student = db.students.find((s) => s.id === studentId);
   const [planId, setPlanId] = useState(student?.planId ?? "ind-3");
-  const [value, setValue] = useState(String(plan(planId).cents / 100));
+  const [value, setValue] = useState(String(plan(planId).cents / (plan(planId).kind === "casal" ? 200 : 100)));
+  const drawerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    drawerRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => previous?.focus();
+  }, []);
   const [due, setDue] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 5); return d.toISOString().slice(0, 10); });
   useEffect(() => { if (student) { setPlanId(student.planId); setValue(String(plan(student.planId).cents / (plan(student.planId).kind === "casal" ? 200 : 100))); } }, [studentId]);
   const cents = Math.round(Number(value.replace(",", ".")) * 100);
   return (
     <motion.div className="drawer-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => onClose()}>
-      <motion.aside className="drawer" initial={{ x: 420 }} animate={{ x: 0 }} exit={{ x: 420 }} transition={{ duration: 0.45, ease: EASE }} onClick={(e) => e.stopPropagation()}>
-        <div className="panel-head"><h2>Nova cobrança</h2><button className="btn sm ghost" aria-label="Fechar" onClick={() => onClose()}><X size={16} /></button></div>
+      <motion.aside ref={drawerRef} className="drawer" role="dialog" aria-modal="true" aria-labelledby="new-charge-title" initial={{ x: 420 }} animate={{ x: 0 }} exit={{ x: 420 }} transition={{ duration: 0.25, ease: EASE }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+        if (e.key === "Tab") {
+          const items = [...drawerRef.current!.querySelectorAll<HTMLElement>('button:not(:disabled), input, select, a[href]')];
+          const first = items[0], last = items[items.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }}>
+        <div className="panel-head"><h2 id="new-charge-title">Gerar link do aluno</h2><button className="btn sm ghost" aria-label="Fechar" onClick={() => onClose()}><X size={16} /></button></div>
+        <p className="muted">Defina a mensalidade. O aluno recebe somente o formulário para conferir os dados e continuar.</p>
         <label className="field"><span>Aluno</span>
-          <select className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>{db.students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+          <select name="studentId" className="input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>{db.students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
         </label>
         <label className="field"><span>Plano</span>
-          <select className="input" value={planId} onChange={(e) => { setPlanId(e.target.value); setValue(String(plan(e.target.value).cents / 100)); }}>{PLANS.map((p) => <option key={p.id} value={p.id}>{p.name} — {brl(p.cents)}</option>)}</select>
+          <select name="planId" className="input" value={planId} onChange={(e) => { setPlanId(e.target.value); const chosen = plan(e.target.value); setValue(String(chosen.cents / (chosen.kind === "casal" ? 200 : 100))); }}>{PLANS.map((p) => <option key={p.id} value={p.id}>{p.name} — {brl(p.cents / (p.kind === "casal" ? 2 : 1))} por aluno</option>)}</select>
         </label>
         <div className="two">
           <label className="field"><span>Valor (R$)</span><input className="input num" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} /></label>
           <label className="field"><span>Vencimento</span><input className="input num" type="date" value={due} onChange={(e) => setDue(e.target.value)} /></label>
         </div>
-        <p className="faint small">O aluno recebe um link, preenche os dados e paga por Pix ou cartão. O pagamento aparece aqui sozinho.</p>
-        <button className="btn gold block" disabled={!student || !(cents > 0)} onClick={() => onClose(createCharge({ studentId, studentName: student!.name, phone: `55${onlyDigits(student!.phone)}`, planId, cents, dueDate: due }))}>
-          Gerar link de pagamento
+        <p className="faint small">Demonstração: o link funciona neste computador. O envio para outros aparelhos será habilitado com a hospedagem.</p>
+        <button className="btn gold block" disabled={!student || !Number.isFinite(cents) || !(cents > 0) || !due} onClick={() => onClose(createCharge({ studentId, studentName: student!.name, phone: `55${onlyDigits(student!.phone.replace(/^55/, ""))}`, planId, cents, dueDate: due }))}>
+          <Link2 size={17} /> Criar link
         </button>
       </motion.aside>
     </motion.div>
@@ -162,20 +194,29 @@ function NewCharge({ onClose }: { onClose: (created?: Charge) => void }) {
 
 export function Charges() {
   const db = useDb();
-  const [filter, setFilter] = useState<"todas" | ChargeStatus>("todas");
-  const [creating, setCreating] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const initialFilter = params.get("filtro");
+  const [filter, setFilter] = useState<"todas" | ChargeStatus>(initialFilter === "atrasado" ? "atrasado" : "todas");
+  const [creating, setCreating] = useState(params.get("nova") === "1");
+  const [query, setQuery] = useState("");
+  const [created, setCreated] = useState<Charge | null>(null);
+  const [copyError, setCopyError] = useState("");
   const [copied, setCopied] = useState("");
   const [fresh, setFresh] = useState("");
-  const list = useMemo(() => [...db.charges].filter((c) => c.studentName && (filter === "todas" || chargeStatus(c) === filter))
-    .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || a.studentName.localeCompare(b.studentName)), [db.charges, filter]);
+  const list = useMemo(() => [...db.charges].filter((c) => c.studentName && c.studentName.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR").trim()) && (filter === "todas" || chargeStatus(c) === filter))
+    .sort((a, b) => b.dueDate.localeCompare(a.dueDate) || a.studentName.localeCompare(b.studentName)), [db.charges, filter, query]);
   const copy = async (charge: Charge) => {
-    try { await navigator.clipboard.writeText(payLink(charge.id)); } catch { /* sem permissão */ }
+    setCopyError("");
+    try { await navigator.clipboard.writeText(payLink(charge.id)); } catch { setCopyError("Não foi possível copiar. Abra o formulário e copie o endereço do navegador."); return; }
     setCopied(charge.id); setTimeout(() => setCopied(""), 1800);
   };
   const counts = { todas: db.charges.filter((c) => c.studentName).length, atrasado: 0, pendente: 0, pago: 0 } as Record<string, number>;
   db.charges.forEach((c) => { if (c.studentName) counts[chargeStatus(c)]++; });
   return (
-    <Page kicker="Mercado Pago" title="Cobranças" action={<button className="btn gold" onClick={() => setCreating(true)}><Plus size={16} /> Nova cobrança</button>}>
+    <Page kicker="Mensalidades e links dos alunos" title="Cobranças" action={<button className="btn gold" onClick={() => setCreating(true)}><Plus size={16} /> Gerar link do aluno</button>}>
+      {copyError && <p className="alert" role="alert">{copyError}</p>}
+      {created && <section className="created-link" aria-label="Link criado"><div><span className="action-icon"><Check size={20} /></span><div><h2>Link pronto para {created.studentName.split(" ")[0]}</h2><p>Copie para enviar por onde preferir ou abra uma conversa no WhatsApp.</p></div><button className="btn sm ghost" aria-label="Fechar aviso" onClick={() => setCreated(null)}><X size={16} /></button></div><input className="input" aria-label="Link do formulário" readOnly value={payLink(created.id)} onFocus={(e) => e.target.select()} /><div className="share-actions"><button className="btn gold" onClick={() => copy(created)}><Copy size={16} />{copied === created.id ? "Copiado" : "Copiar link"}</button><a className="btn" href={whatsapp(created)} target="_blank" rel="noreferrer"><Send size={16} /> WhatsApp</a><Link className="btn ghost" to={`/pagar/${created.id}`} target="_blank"><ExternalLink size={16} /> Ver formulário</Link></div></section>}
+      <div className="charges-toolbar">
       <div className="seg-row">
         {(["todas", "atrasado", "pendente", "pago"] as const).map((key) => (
           <button key={key} className={filter === key ? "on" : ""} onClick={() => setFilter(key)}>
@@ -183,6 +224,8 @@ export function Charges() {
             <span>{key === "todas" ? "Todas" : STATUS_LABEL[key] + "s"} <i className="num">{counts[key]}</i></span>
           </button>
         ))}
+      </div>
+      <label className="search"><Search size={17} /><input aria-label="Buscar cobrança por aluno" placeholder="Buscar aluno…" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
       </div>
       <section className="panel table">
         <div className="tr th"><span>Aluno</span><span>Referência</span><span>Vencimento</span><span>Valor</span><span>Situação</span><span /></div>
@@ -217,7 +260,8 @@ export function Charges() {
         </AnimatePresence>
         {!list.length && <p className="empty">Nenhuma cobrança nesta situação.</p>}
       </section>
-      <AnimatePresence>{creating && <NewCharge onClose={(created) => { setCreating(false); if (created) { setFilter("todas"); setFresh(created.id); setTimeout(() => setFresh(""), 2600); } }} />}</AnimatePresence>
+      <p className="list-count">{list.length} cobrança(s) encontrada(s)</p>
+      <AnimatePresence>{creating && <NewCharge onClose={(result) => { setCreating(false); setParams({}, { replace: true }); if (result) { setCreated(result); setQuery(""); setFilter("todas"); setFresh(result.id); setTimeout(() => setFresh(""), 2600); } }} />}</AnimatePresence>
     </Page>
   );
 }

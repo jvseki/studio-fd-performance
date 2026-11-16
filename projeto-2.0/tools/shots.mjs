@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 
 const out = process.argv[2] ?? "video/conferencia";
 mkdirSync(out, { recursive: true });
-const BASE = "http://localhost:5183";
+const BASE = process.env.STUDIO_PREVIEW_URL ?? "http://localhost:5183";
 const browser = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true, args: ["--hide-scrollbars"] });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const errors = [];
@@ -20,14 +20,8 @@ async function desktop(name, path, steps = async () => {}) {
   await page.screenshot({ path: `${out}/${name}.png` });
   await page.close();
 }
-const scrollTo = (y) => async (page) => { await page.evaluate((v) => window.scrollTo(0, v), y); await wait(1800); };
-
-await desktop("01-hero", "/");
-await desktop("02-metodo-1", "/", scrollTo(1250));
-await desktop("03-metodo-2", "/", scrollTo(2300));
-await desktop("04-estrutura", "/", scrollTo(4700));
-await desktop("05-planos", "/", async (page) => { await page.evaluate(() => document.querySelector("#planos").scrollIntoView()); await wait(2000); });
-await desktop("06-fim", "/", async (page) => { await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await wait(2000); });
+await desktop("01-inicio", "/");
+await desktop("02-gerar-link", "/painel/cobrancas?nova=1");
 await desktop("07-painel", "/painel");
 await desktop("08-cobrancas", "/painel/cobrancas");
 await desktop("09-agenda", "/painel/agenda");
@@ -66,7 +60,7 @@ await phone.screenshot({ path: `${out}/17-celular-pago.png` });
 await phone.goto(BASE + "/demo/conversa", { waitUntil: "networkidle0" });
 await wait(3600);
 await phone.screenshot({ path: `${out}/18-conversa.png` });
-for (const [name, path] of [["19-celular-site", "/"], ["20-celular-painel", "/painel"], ["21-celular-cobrancas", "/painel/cobrancas"], ["22-celular-agenda", "/painel/agenda"], ["23-celular-alunos", "/painel/alunos"]]) {
+for (const [name, path] of [["19-celular-inicio", "/"], ["20-celular-gerar-link", "/painel/cobrancas?nova=1"], ["21-celular-cobrancas", "/painel/cobrancas"], ["22-celular-agenda", "/painel/agenda"], ["23-celular-alunos", "/painel/alunos"]]) {
   await phone.goto(BASE + path, { waitUntil: "networkidle0" });
   await wait(2200);
   await phone.screenshot({ path: `${out}/${name}.png` });
