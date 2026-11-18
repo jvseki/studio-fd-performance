@@ -1,0 +1,10 @@
+{
+  "name": "Studio FD Performance",
+  "short_name": "Studio FD",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#0b0b0c",
+  "lang": "pt-BR",
+  "icons": [{ "src": "/marca.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

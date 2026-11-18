@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 from studio_fd import __version__  # noqa: E402
@@ -367,6 +368,20 @@ def create_app(data_dir: Path = DATA_DIR) -> FastAPI:
     def meses(mes_ref: str | None = None):
         month = mes(mes_ref)
         return {"anterior": add_months(month, -1), "atual": month, "seguinte": add_months(month, 1)}
+
+    # Site pronto (npm run build): o mesmo servidor entrega as telas, num endereço só.
+    site = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+    if site.is_dir():
+        app.mount("/assets", StaticFiles(directory=site / "assets"), name="assets")
+
+        @app.get("/{caminho:path}", include_in_schema=False)
+        def telas(caminho: str):
+            if caminho.startswith("api/"):
+                raise HTTPException(404, "Endereço da API não encontrado.")
+            arquivo = (site / caminho).resolve()
+            if caminho and arquivo.is_file() and arquivo.is_relative_to(site.resolve()):
+                return FileResponse(arquivo)
+            return FileResponse(site / "index.html")  # rotas do React (/agenda, /alunos...)
 
     return app
 
