@@ -1,0 +1,22 @@
+# Versão web do Studio FD Performance (demonstração) — usada pelo Render.
+# Monta as telas (React) e roda a API (Python) num serviço só.
+
+FROM node:22-slim AS site
+WORKDIR /build
+COPY ["versão-web/frontend/package.json", "versão-web/frontend/package-lock.json", "./"]
+RUN npm ci --no-audit --no-fund
+COPY ["versão-web/frontend/", "./"]
+ENV VITE_DEMO=1
+RUN npm run build
+
+FROM python:3.13-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1
+WORKDIR /app/versao-web/backend
+COPY ["versão-web/backend/requirements.txt", "/tmp/requisitos.txt"]
+RUN pip install --no-cache-dir -r /tmp/requisitos.txt
+COPY studio_fd /app/studio_fd
+COPY migrations /app/migrations
+COPY ["versão-web/backend/app.py", "versão-web/backend/semear_demo.py", "./"]
+COPY --from=site /build/dist /app/versao-web/frontend/dist
+# A cada vez que o serviço liga, recria os dados FICTÍCIOS de demonstração.
+CMD ["sh", "-c", "python semear_demo.py /tmp/demo && STUDIO_FD_WEB_DATA=/tmp/demo exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]

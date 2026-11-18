@@ -83,7 +83,7 @@ export default function Mensalidades() {
             <div className="campos">
               <p className="fraco">Vencimento {dataBr(aberta.due_date)}. O valor entra no caixa automaticamente.</p>
               <Campo rotulo="Forma de pagamento">
-                <div className="chips" style={{ flexWrap: "wrap" }}>{FORMAS.map((f) => <button key={f} className={`chip ${pag.forma === f ? "ativo" : ""}`} style={pag.forma === f ? { background: "var(--preto)" } : undefined} onClick={() => setPag({ ...pag, forma: f })}><span>{f}</span></button>)}</div>
+                <div className="chips" style={{ flexWrap: "wrap" }}>{FORMAS.map((f) => <button key={f} aria-pressed={pag.forma === f} className={`chip ${pag.forma === f ? "ativo" : ""}`} onClick={() => setPag({ ...pag, forma: f })}>{f}</button>)}</div>
               </Campo>
               <div className="duas">
                 <Campo rotulo="Valor (R$)"><input className="entrada num" inputMode="decimal" value={pag.valor} onChange={(e) => setPag({ ...pag, valor: e.target.value })} /></Campo>

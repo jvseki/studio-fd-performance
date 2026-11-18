@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { CalendarDays, House, LayoutGrid, Users, Wallet } from "lucide-react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AvisoProvider } from "./componentes/ui";
+import { SeletorTema } from "./lib/tema";
 import Agenda from "./paginas/Agenda";
 import Alunos from "./paginas/Alunos";
 import Caixa from "./paginas/Caixa";
@@ -29,9 +30,13 @@ export default function App() {
             <NavLink key={para} to={para} end={para === "/"} className={ativo(para) ? "ativa" : ""}><Icone size={19} /> {nome}</NavLink>
           ))}
           <NavLink to="/caixa" className={ativo("/caixa") ? "ativa" : ""}><Wallet size={19} /> Caixa</NavLink>
-          <p className="rodape">Versão web 1.0 · sem login (uso de teste)</p>
+          <div style={{ marginTop: "auto" }}><SeletorTema /></div>
+          <p className="rodape" style={{ marginTop: 8 }}>Versão web 1.0 · sem login (uso de teste)</p>
         </aside>
         <main className="conteudo">
+          {import.meta.env.VITE_DEMO && (
+            <p className="faixa-demo">Demonstração com dados fictícios · sem login · os testes voltam ao início quando o servidor reinicia</p>
+          )}
           <motion.div key={pathname.split("/")[1]} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <Routes>
               <Route path="/" element={<Inicio />} />

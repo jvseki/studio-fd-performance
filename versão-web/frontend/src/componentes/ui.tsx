@@ -85,13 +85,12 @@ export function Carregando({ linhas = 4 }: { linhas?: number }) {
 
 export const Vazio = ({ children }: { children: ReactNode }) => <div className="cartao vazio">{children}</div>;
 
-export function Chips<T extends string>({ opcoes, valor, aoMudar, id }: { opcoes: [T, string][]; valor: T; aoMudar: (v: T) => void; id: string }) {
+export function Chips<T extends string>({ opcoes, valor, aoMudar }: { opcoes: [T, string][]; valor: T; aoMudar: (v: T) => void; id?: string }) {
   return (
     <div className="chips" role="tablist">
       {opcoes.map(([chave, texto]) => (
         <button key={chave} role="tab" aria-selected={valor === chave} className={`chip ${valor === chave ? "ativo" : ""}`} onClick={() => aoMudar(chave)}>
-          {valor === chave && <motion.span layoutId={id} className="chip-fundo" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
-          <span>{texto}</span>
+          {texto}
         </button>
       ))}
     </div>

@@ -5,6 +5,7 @@ import { Campo, Carregando, Entrada, Folha, Topo, useAviso } from "../componente
 import { api, type Configuracoes, type Plano } from "../lib/api";
 import { useDados } from "../lib/dados";
 import { brl, hojeIso, mesLongo, paraCentavos, reais } from "../lib/formato";
+import { SeletorTema } from "../lib/tema";
 
 const ITENS = [
   { para: "/caixa", nome: "Caixa", texto: "Entradas, saídas e saldo", Icone: Wallet },
@@ -18,6 +19,10 @@ function Menu() {
   return (
     <>
       <Topo sobre="Studio FD Performance" titulo="Mais" />
+      <section style={{ marginBottom: 16 }}>
+        <p className="pequeno fraco" style={{ fontWeight: 800, marginBottom: 8 }}>Aparência</p>
+        <SeletorTema />
+      </section>
       <div className="lista">
         {ITENS.map(({ para, nome, texto, Icone }, i) => (
           <Entrada key={para} indice={i}>
@@ -106,7 +111,7 @@ function Relatorios() {
             <div key={f.month} style={{ display: "grid", gap: 6, justifyItems: "center", height: "100%", alignContent: "end" }}>
               <div style={{ display: "flex", gap: 3, alignItems: "end", height: 130 }}>
                 <span style={{ width: 12, height: `${(f.income_cents / maior) * 100}%`, minHeight: 2, background: "var(--ouro)", borderRadius: 4 }} />
-                <span style={{ width: 12, height: `${(f.expense_cents / maior) * 100}%`, minHeight: 2, background: "#cfc8ba", borderRadius: 4 }} />
+                <span style={{ width: 12, height: `${(f.expense_cents / maior) * 100}%`, minHeight: 2, background: "var(--linha-forte)", borderRadius: 4 }} />
               </div>
               <span className="pequeno mais-fraco cap">{new Date(f.month + "T12:00").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
             </div>

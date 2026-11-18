@@ -1,0 +1,11 @@
+# Blueprint do Render: demonstração da versão web (dados fictícios, sem login).
+services:
+  - type: web
+    name: studio-fd-demo
+    runtime: docker
+    plan: free
+    branch: redesign-visual-trailer
+    dockerfilePath: ./Dockerfile.web
+    dockerContext: .
+    healthCheckPath: /api/saude
+    autoDeploy: true

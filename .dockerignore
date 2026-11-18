@@ -1,0 +1,17 @@
+.git
+.venv
+.claude
+build
+dist
+release
+apresentacao
+projeto-2.0
+projeto-3.0
+tests
+tools
+**/node_modules
+**/__pycache__
+versão-web/backend/dados
+versão-web/backend/dados-demo
+versão-web/frontend/dist
+versão-web/conferencia

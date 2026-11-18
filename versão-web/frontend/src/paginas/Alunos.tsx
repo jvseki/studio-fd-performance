@@ -62,7 +62,7 @@ export default function Alunos() {
       <Chips id="filtro-alunos" valor={filtro} aoMudar={setFiltro} opcoes={[["ativos", "Ativos"], ["todos", "Todos"], ["inativos", "Inativos"]]} />
       {erro && <p className="erro">{erro}</p>}
       {!dados ? <Carregando /> : dados.length ? (
-        <div className="lista">
+        <div className="lista tem-flutuante">
           {dados.map((aluno, i) => (
             <Entrada key={aluno.id} indice={i}>
               <button className="cartao item" onClick={() => setFichaId(aluno.id)}>
@@ -107,7 +107,7 @@ export default function Alunos() {
               </div>
               {f.anamneses.length ? <div className="lista">{f.anamneses.map((a) => (
                 <div key={a.id} className="cartao item" style={{ minHeight: 56 }}>
-                  <FileText size={22} color="#8a6b35" />
+                  <FileText size={22} color="var(--ouro-texto)" />
                   <a className="meio" href={`/api/anamneses/${a.id}/arquivo?student_id=${f.aluno.id}`} target="_blank" rel="noreferrer"><b>{a.original_name}</b><span>{dataBr(a.attached_on)}{a.notes ? ` · ${a.notes}` : ""}</span></a>
                   <button className="botao redondo leve" aria-label="Remover anamnese" onClick={() => removerAnamnese(a.id)}><Trash2 size={18} /></button>
                 </div>))}</div> : <p className="mais-fraco pequeno">Nenhuma anamnese anexada.</p>}
