@@ -7,3 +7,4 @@ dados-demo/
 video/
 *.log
 conferencia/falha-*.png
+backend/.env

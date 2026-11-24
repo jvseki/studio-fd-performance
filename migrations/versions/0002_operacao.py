@@ -13,6 +13,11 @@ branch_labels = None
 depends_on = None
 
 
+def _so_sqlite(*constraints):
+    """Checagens 0/1 de campos booleanos só existem no SQLite; no PostgreSQL o tipo boolean já garante."""
+    return list(constraints) if op.get_bind().dialect.name == "sqlite" else []
+
+
 def upgrade() -> None:
     trainers = op.create_table(
         "trainers",
@@ -21,7 +26,7 @@ def upgrade() -> None:
         sa.Column("position", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("active", sa.Boolean(), nullable=False, server_default="1"),
         sa.CheckConstraint("length(trim(name)) > 0", name="name_not_empty"),
-        sa.CheckConstraint("active IN (0, 1)", name="active_boolean"),
+        *_so_sqlite(sa.CheckConstraint("active IN (0, 1)", name="active_boolean")),
     )
     op.bulk_insert(trainers, [
         {"id": 1, "name": "Personal 1", "position": 1, "active": True},
@@ -41,9 +46,13 @@ def upgrade() -> None:
 
     # SQLite não cria chave estrangeira nomeada com ALTER TABLE: o modo batch
     # copia a tabela de alunos para uma nova estrutura, preservando os dados.
-    with op.batch_alter_table("students", recreate="always") as batch:
-        batch.add_column(sa.Column("trainer_id", sa.Integer(), nullable=True))
-        batch.create_foreign_key("fk_students_trainer_id_trainers", "trainers", ["trainer_id"], ["id"], ondelete="SET NULL")
+    if op.get_bind().dialect.name == "sqlite":
+        with op.batch_alter_table("students", recreate="always") as batch:
+            batch.add_column(sa.Column("trainer_id", sa.Integer(), nullable=True))
+            batch.create_foreign_key("fk_students_trainer_id_trainers", "trainers", ["trainer_id"], ["id"], ondelete="SET NULL")
+    else:  # PostgreSQL aceita a coluna e a chave estrangeira direto
+        op.add_column("students", sa.Column("trainer_id", sa.Integer(), nullable=True))
+        op.create_foreign_key("fk_students_trainer_id_trainers", "students", "trainers", ["trainer_id"], ["id"], ondelete="SET NULL")
 
     op.create_table(
         "appointments",

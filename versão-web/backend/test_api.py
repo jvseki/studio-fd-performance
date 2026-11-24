@@ -15,8 +15,10 @@ from app import create_app
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.temp = TemporaryDirectory()
-        self.client = TestClient(create_app(Path(self.temp.name)))
+        self.client = TestClient(create_app(Path(self.temp.name), database_url=""))
         self.client.__enter__()
+        self.client.app.state.s.acesso.criar("admin@teste.com", "Admin", "senha-forte-1", "admin")
+        self.assertEqual(self.client.post("/api/entrar", json={"email": "admin@teste.com", "senha": "senha-forte-1"}).status_code, 200)
 
     def tearDown(self):
         self.client.__exit__(None, None, None)
@@ -71,6 +73,66 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/alunos", json={"full_name": " ", "phone": "1"}).status_code, 400)
         self.assertEqual(self.client.get("/api/alunos/999").status_code, 400)
         self.assertEqual(self.client.get("/api/mensalidades?mes_ref=abc").status_code, 400)
+
+
+class LoginTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.client = TestClient(create_app(Path(self.temp.name), database_url=""))
+        self.client.__enter__()
+        self.acesso = self.client.app.state.s.acesso
+        self.acesso.criar("admin@teste.com", "Admin", "senha-forte-1", "admin")
+
+    def tearDown(self):
+        self.client.__exit__(None, None, None)
+        self.temp.cleanup()
+
+    def entrar(self, email, senha):
+        return self.client.post("/api/entrar", json={"email": email, "senha": senha})
+
+    def test_api_fechada_sem_login(self):
+        self.assertEqual(self.client.get("/api/alunos").status_code, 401)
+        self.assertEqual(self.client.get("/api/saude").status_code, 200)
+        self.assertEqual(self.entrar("admin@teste.com", "errada-123").status_code, 401)
+        self.assertEqual(self.entrar("ninguem@teste.com", "senha-forte-1").status_code, 401)
+        self.assertEqual(self.client.get("/api/alunos").status_code, 401)
+
+    def test_admin_cria_equipe_e_equipe_nao_administra(self):
+        self.assertEqual(self.entrar("ADMIN@teste.com ", "senha-forte-1").status_code, 200)
+        self.assertEqual(self.client.get("/api/eu").json()["papel"], "admin")
+        fraca = self.client.post("/api/usuarios", json={"nome": "Fran", "email": "fran@teste.com", "senha": "123"})
+        self.assertEqual(fraca.status_code, 400)
+        fran = self.client.post("/api/usuarios", json={"nome": "Fran", "email": "fran@teste.com", "senha": "fran-senha-1"})
+        self.assertEqual(fran.status_code, 200, fran.text)
+        self.client.post("/api/sair")
+        self.assertEqual(self.entrar("fran@teste.com", "fran-senha-1").status_code, 200)
+        self.assertEqual(self.client.get("/api/alunos").status_code, 200)
+        self.assertEqual(self.client.get("/api/usuarios").status_code, 403)
+
+    def test_trocar_senha_derruba_sessao_e_desativado_nao_entra(self):
+        self.entrar("admin@teste.com", "senha-forte-1")
+        antigo = self.client.cookies.get("studiofd_sessao")
+        self.assertEqual(self.client.post("/api/eu/senha", json={"atual": "errada-1", "nova": "nova-senha-2"}).status_code, 400)
+        self.assertEqual(self.client.post("/api/eu/senha", json={"atual": "senha-forte-1", "nova": "nova-senha-2"}).status_code, 200)
+        self.client.cookies.set("studiofd_sessao", antigo)
+        self.assertEqual(self.client.get("/api/alunos").status_code, 401)
+        self.client.cookies.clear()
+        self.assertEqual(self.entrar("admin@teste.com", "nova-senha-2").status_code, 200)
+        equipe = self.acesso.criar("douglas@teste.com", "Douglas", "douglas-senha-1")
+        self.assertEqual(self.client.patch(f"/api/usuarios/{equipe.id}", json={"ativo": False}).status_code, 200)
+        self.client.post("/api/sair")
+        self.assertEqual(self.entrar("douglas@teste.com", "douglas-senha-1").status_code, 401)
+
+    def test_pedido_de_outro_site_recusado(self):
+        self.entrar("admin@teste.com", "senha-forte-1")
+        r = self.client.post("/api/planos", headers={"origin": "https://site-malicioso.com"},
+                             json={"name": "X", "workouts_per_week": 1, "price_cents": 1})
+        self.assertEqual(r.status_code, 403)
+
+    def test_limite_de_tentativas(self):
+        for _ in range(8):
+            self.entrar("admin@teste.com", "errada-123")
+        self.assertIn("Muitas tentativas", self.entrar("admin@teste.com", "senha-forte-1").json()["detail"])
 
 
 if __name__ == "__main__":
