@@ -51,6 +51,20 @@ import backup_web  # noqa: E402
 from acesso import COOKIE, DURACAO_SESSAO, Acesso, Usuario, segredo_da_aplicacao  # noqa: E402
 from armazenamento import Armazenamento  # noqa: E402
 
+def carregar_env(arquivo: Path) -> None:
+    """Lê backend/.env (só no computador; no Render as variáveis vêm do painel). Não sobrescreve o que já existe."""
+    if not arquivo.exists():
+        return
+    for linha in arquivo.read_text(encoding="utf-8").splitlines():
+        linha = linha.strip()
+        if linha and not linha.startswith("#") and "=" in linha:
+            chave, valor = linha.split("=", 1)
+            if valor.strip():
+                os.environ.setdefault(chave.strip(), valor.strip())
+
+
+carregar_env(Path(__file__).resolve().parent / ".env")
+
 # Pasta de dados própria da versão web: NUNCA a pasta do desktop por padrão.
 DATA_DIR = Path(os.environ.get("STUDIO_FD_WEB_DATA", Path(__file__).resolve().parent / "dados"))
 
