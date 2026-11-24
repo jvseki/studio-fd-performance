@@ -57,5 +57,7 @@ s.cash.add(CashInput(anterior.replace(day=5), "Aluguel do espaço", "Aluguel", "
 pdf = pasta / "anamnese-ficticia.pdf"
 pdf.write_bytes(b"%PDF-1.4\n% anamnese ficticia\n%%EOF\n")
 s.anamneses.add(ids[0], pdf, date.today() - timedelta(days=30), "Avaliação inicial")
+# Acesso de teste, SÓ no modo demonstração (sem Supabase): e-mail e senha aparecem na tela de entrada.
+s.acesso.criar("demo@studiofd.com.br", "Demonstração", "studiofd2026", "admin")
 s.engine.dispose()
 print("dados de demonstração em", pasta.resolve())

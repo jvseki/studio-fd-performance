@@ -3,6 +3,7 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { EASE } from "../componentes/ui";
 import { useSessao } from "../lib/sessao";
+import { useDados } from "../lib/dados";
 
 export default function Entrar() {
   const { entrar } = useSessao();
@@ -11,6 +12,7 @@ export default function Entrar() {
   const [ver, setVer] = useState(false);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const demo = useDados<{ demo: boolean }>("/saude").dados?.demo;
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
     setErro(""); setEnviando(true);
@@ -22,6 +24,11 @@ export default function Entrar() {
         <div className="marca entrar-marca"><span className="marca-fd">FD</span><span>Studio FD<i>PERFORMANCE</i></span></div>
         <h1 className="titulo">Bem-vindo de volta.</h1>
         <p className="fraco" style={{ margin: "6px 0 22px" }}>Entre com o e-mail e a senha da sua conta.</p>
+        {demo && (
+          <button type="button" className="faixa-demo" style={{ width: "100%", cursor: "pointer" }} onClick={() => { setEmail("demo@studiofd.com.br"); setSenha("studiofd2026"); }}>
+            Demonstração com alunos fictícios · toque aqui para preencher<br />demo@studiofd.com.br · studiofd2026
+          </button>
+        )}
         <div className="campos">
           <label className="campo"><span>E-mail</span>
             <input className="entrada" type="email" name="email" autoComplete="username" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
