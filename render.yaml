@@ -1,4 +1,5 @@
-# Blueprint do Render: demonstração da versão web (dados fictícios, sem login).
+# Blueprint do Render: versão web do Studio FD (PWA).
+# Valores secretos: preencha no painel do Render > Environment. Nunca neste arquivo.
 services:
   - type: web
     name: studio-fd-demo
@@ -9,3 +10,18 @@ services:
     dockerContext: .
     healthCheckPath: /api/saude
     autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SUPABASE_BUCKET
+        value: documentos
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_SENHA_INICIAL
+        sync: false

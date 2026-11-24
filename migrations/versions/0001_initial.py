@@ -24,7 +24,7 @@ $$
 
 def _so_sqlite(*constraints):
     """Checagens 0/1 de campos booleanos só existem no SQLite; no PostgreSQL o tipo boolean já garante."""
-    return list(constraints) if op.get_bind().dialect.name == "sqlite" else []
+    return list(constraints) if op.get_context().dialect.name == "sqlite" else []
 
 
 def upgrade() -> None:
@@ -64,7 +64,7 @@ def upgrade() -> None:
         *_so_sqlite(sa.CheckConstraint("active IN (0, 1)", name="active_boolean")),
     )
     op.create_index("ix_students_full_name", "students", ["full_name"])
-    if op.get_bind().dialect.name == "postgresql":
+    if op.get_context().dialect.name == "postgresql":
         op.execute(SEARCH_KEY_POSTGRES)
 
 

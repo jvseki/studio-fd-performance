@@ -248,3 +248,15 @@ select.entrada { appearance: none; background-image: url("data:image/svg+xml,%3C
 .lateral .tema { background: #17161a; border-color: #2a2721; margin: 0 4px; }
 .lateral .tema button { color: #a29c90; min-height: 36px; }
 .lateral .tema button[aria-pressed="true"] { background: #2a2418; color: var(--ouro-claro); }
+
+/* ---------------------------------------------------------------- entrada */
+.entrar { min-height: 100svh; display: grid; place-items: center; padding: 24px 16px;
+  background: radial-gradient(800px 420px at 80% -10%, rgba(201, 169, 107, .16), transparent 70%), var(--fundo); }
+.entrar-cartao { width: min(420px, 100%); padding: 28px 22px 24px; border-radius: 24px; background: var(--cartao); border: 1px solid var(--linha); box-shadow: var(--sombra); }
+.entrar-marca { margin-bottom: 26px; color: var(--texto); }
+.senha { position: relative; display: block; }
+.senha .entrada { padding-right: 56px; }
+.senha .botao { position: absolute; right: 2px; top: 2px; }
+.carregando-tela { min-height: 100svh; display: grid; place-items: center; }
+.carregando-tela .marca-fd { animation: pulsar 1.2s ease-in-out infinite; }
+@keyframes pulsar { 50% { opacity: .4; } }

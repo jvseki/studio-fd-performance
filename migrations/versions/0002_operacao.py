@@ -15,7 +15,7 @@ depends_on = None
 
 def _so_sqlite(*constraints):
     """Checagens 0/1 de campos booleanos só existem no SQLite; no PostgreSQL o tipo boolean já garante."""
-    return list(constraints) if op.get_bind().dialect.name == "sqlite" else []
+    return list(constraints) if op.get_context().dialect.name == "sqlite" else []
 
 
 def upgrade() -> None:
@@ -32,6 +32,9 @@ def upgrade() -> None:
         {"id": 1, "name": "Personal 1", "position": 1, "active": True},
         {"id": 2, "name": "Personal 2", "position": 2, "active": True},
     ])
+    if op.get_context().dialect.name == "postgresql":
+        # Os ids 1 e 2 foram gravados à mão: avança o contador para o próximo personal não repetir o id.
+        op.execute("SELECT setval(pg_get_serial_sequence('trainers', 'id'), (SELECT max(id) FROM trainers))")
 
     settings = op.create_table(
         "settings",
@@ -46,7 +49,7 @@ def upgrade() -> None:
 
     # SQLite não cria chave estrangeira nomeada com ALTER TABLE: o modo batch
     # copia a tabela de alunos para uma nova estrutura, preservando os dados.
-    if op.get_bind().dialect.name == "sqlite":
+    if op.get_context().dialect.name == "sqlite":
         with op.batch_alter_table("students", recreate="always") as batch:
             batch.add_column(sa.Column("trainer_id", sa.Integer(), nullable=True))
             batch.create_foreign_key("fk_students_trainer_id_trainers", "trainers", ["trainer_id"], ["id"], ondelete="SET NULL")

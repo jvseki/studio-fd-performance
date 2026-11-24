@@ -1,8 +1,9 @@
-import { BarChart3, ChevronRight, Clock, DatabaseBackup, Layers, Users, Wallet } from "lucide-react";
+import { BarChart3, ChevronRight, Clock, DatabaseBackup, KeyRound, Layers, LogOut, ShieldCheck, UserRound, Users, Wallet } from "lucide-react";
 import { useState } from "react";
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import { Campo, Carregando, Entrada, Folha, Topo, useAviso } from "../componentes/ui";
-import { api, type Configuracoes, type Plano } from "../lib/api";
+import { api, type Configuracoes, type Plano, type Usuario } from "../lib/api";
+import { useSessao } from "../lib/sessao";
 import { useDados } from "../lib/dados";
 import { brl, hojeIso, mesLongo, paraCentavos, reais } from "../lib/formato";
 import { SeletorTema } from "../lib/tema";
@@ -13,9 +14,12 @@ const ITENS = [
   { para: "/mais/relatorios", nome: "Relatórios", texto: "Resultado do mês", Icone: BarChart3 },
   { para: "/mais/configuracoes", nome: "Personais e horário", texto: "Vagas da agenda", Icone: Users },
   { para: "/mais/backup", nome: "Backup", texto: "Baixar cópia de tudo", Icone: DatabaseBackup },
+  { para: "/mais/conta", nome: "Minha conta", texto: "Trocar senha e sair", Icone: UserRound },
 ];
 
 function Menu() {
+  const { usuario } = useSessao();
+  const itens = usuario?.papel === "admin" ? [...ITENS, { para: "/mais/usuarios", nome: "Usuários", texto: "Quem acessa o sistema", Icone: ShieldCheck }] : ITENS;
   return (
     <>
       <Topo sobre="Studio FD Performance" titulo="Mais" />
@@ -24,7 +28,7 @@ function Menu() {
         <SeletorTema />
       </section>
       <div className="lista">
-        {ITENS.map(({ para, nome, texto, Icone }, i) => (
+        {itens.map(({ para, nome, texto, Icone }, i) => (
           <Entrada key={para} indice={i}>
             <Link to={para} className="cartao item">
               <span className="avatar"><Icone size={20} /></span>
@@ -167,6 +171,110 @@ function Backup() {
   );
 }
 
+function Conta() {
+  const { usuario, sair: encerrar } = useSessao();
+  const navegar = useNavigate();
+  // Ao sair, volta para o Início: quem entrar de novo começa pela tela principal.
+  const sair = () => { navegar("/", { replace: true }); encerrar(); };
+  const [form, setForm] = useState({ atual: "", nova: "", repetir: "" });
+  const [erro, setErro] = useState("");
+  const avisar = useAviso();
+  const trocar = async () => {
+    setErro("");
+    if (form.nova !== form.repetir) { setErro("A nova senha e a repetição estão diferentes."); return; }
+    try {
+      await api.post("/eu/senha", { atual: form.atual, nova: form.nova });
+      avisar("Senha trocada. Entre de novo com a senha nova.");
+      setTimeout(() => sair(), 1200);
+    } catch (e) { setErro((e as Error).message); }
+  };
+  return (
+    <>
+      <Topo sobre={usuario?.papel === "admin" ? "Administrador" : "Equipe"} titulo="Minha conta" />
+      <div className="cartao recheio" style={{ marginBottom: 14 }}>
+        <b>{usuario?.nome}</b>
+        <p className="fraco">{usuario?.email}</p>
+      </div>
+      <section className="cartao recheio campos">
+        <h2 style={{ fontSize: 17 }}><KeyRound size={18} style={{ verticalAlign: -3 }} /> Trocar senha</h2>
+        <Campo rotulo="Senha atual"><input className="entrada" type="password" autoComplete="current-password" value={form.atual} onChange={(e) => setForm({ ...form, atual: e.target.value })} /></Campo>
+        <Campo rotulo="Nova senha (8+ caracteres, letras e números)"><input className="entrada" type="password" autoComplete="new-password" value={form.nova} onChange={(e) => setForm({ ...form, nova: e.target.value })} /></Campo>
+        <Campo rotulo="Repita a nova senha"><input className="entrada" type="password" autoComplete="new-password" value={form.repetir} onChange={(e) => setForm({ ...form, repetir: e.target.value })} /></Campo>
+        {erro && <p className="erro">{erro}</p>}
+        <button className="botao ouro largo" onClick={trocar}>Salvar nova senha</button>
+      </section>
+      <div className="acoes"><button className="botao largo perigo" onClick={sair}><LogOut /> Sair desta conta</button></div>
+    </>
+  );
+}
+
+function Usuarios() {
+  const { dados, erro, recarregar } = useDados<Usuario[]>("/usuarios");
+  const { usuario } = useSessao();
+  const [novo, setNovo] = useState(false);
+  const [form, setForm] = useState({ nome: "", email: "", senha: "", papel: "equipe" });
+  const [erroForm, setErroForm] = useState("");
+  const avisar = useAviso();
+  const criar = async () => {
+    try { await api.post("/usuarios", form); avisar(`Acesso criado para ${form.nome.split(" ")[0]}`); setNovo(false); recarregar(); }
+    catch (e) { setErroForm((e as Error).message); }
+  };
+  const alternar = async (u: Usuario) => {
+    try { await api.patch(`/usuarios/${u.id}`, { ativo: !u.ativo }); avisar(u.ativo ? "Acesso bloqueado" : "Acesso liberado"); recarregar(); }
+    catch (e) { avisar((e as Error).message, true); }
+  };
+  const redefinir = async (u: Usuario) => {
+    const nova = prompt(`Nova senha para ${u.nome} (8+ caracteres, letras e números):`);
+    if (!nova) return;
+    try { await api.post(`/usuarios/${u.id}/senha`, { nova }); avisar("Senha redefinida. Passe a nova senha para a pessoa."); }
+    catch (e) { avisar((e as Error).message, true); }
+  };
+  return (
+    <>
+      <Topo sobre="Administração" titulo="Usuários" acao={<button className="botao ouro" onClick={() => { setNovo(true); setErroForm(""); setForm({ nome: "", email: "", senha: "", papel: "equipe" }); }}>Novo acesso</button>} />
+      <p className="fraco" style={{ marginBottom: 12 }}>Crie um acesso para cada pessoa (Douglas, Fran). Não compartilhe a mesma senha.</p>
+      {erro && <p className="erro">{erro}</p>}
+      {!dados ? <Carregando /> : (
+        <div className="lista">
+          {dados.map((u, i) => (
+            <Entrada key={u.id} indice={i}>
+              <div className="cartao item">
+                <span className="avatar">{u.nome.slice(0, 2).toUpperCase()}</span>
+                <span className="meio"><b>{u.nome}</b><span>{u.email}</span></span>
+                <span className="direita">
+                  <span className={`selo ${u.papel === "admin" ? "ouro" : ""}`}>{u.papel === "admin" ? "Admin" : "Equipe"}</span>
+                  {!u.ativo && <span className="selo perigo">Bloqueado</span>}
+                </span>
+              </div>
+              {u.id !== usuario?.id && (
+                <div className="duas" style={{ marginTop: 6 }}>
+                  <button className="botao mini" onClick={() => redefinir(u)}>Nova senha</button>
+                  <button className={`botao mini ${u.ativo ? "perigo" : ""}`} onClick={() => alternar(u)}>{u.ativo ? "Bloquear" : "Liberar"}</button>
+                </div>
+              )}
+            </Entrada>
+          ))}
+        </div>
+      )}
+      <Folha aberta={novo} titulo="Novo acesso" aoFechar={() => setNovo(false)}>
+        <div className="campos">
+          <Campo rotulo="Nome"><input className="entrada" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></Campo>
+          <Campo rotulo="E-mail"><input className="entrada" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Campo>
+          <Campo rotulo="Senha inicial (8+ caracteres, letras e números)"><input className="entrada" type="text" autoComplete="off" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} /></Campo>
+          <Campo rotulo="Tipo de acesso">
+            <select className="entrada" value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}>
+              <option value="equipe">Equipe (usa o sistema)</option>
+              <option value="admin">Administrador (também gerencia acessos)</option>
+            </select>
+          </Campo>
+          {erroForm && <p className="erro">{erroForm}</p>}
+        </div>
+        <div className="acoes"><button className="botao ouro largo" onClick={criar}>Criar acesso</button></div>
+      </Folha>
+    </>
+  );
+}
+
 export default function Mais() {
   return (
     <Routes>
@@ -175,6 +283,8 @@ export default function Mais() {
       <Route path="relatorios" element={<Relatorios />} />
       <Route path="configuracoes" element={<Config />} />
       <Route path="backup" element={<Backup />} />
+      <Route path="conta" element={<Conta />} />
+      <Route path="usuarios" element={<Usuarios />} />
     </Routes>
   );
 }

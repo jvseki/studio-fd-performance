@@ -77,7 +77,19 @@ class Services:
         self.backup = BackupService(paths, __version__)
         self.storage = Armazenamento()
         self.acesso = Acesso(self.engine, segredo_da_aplicacao())
+        if self.postgres:
+            proteger_tabelas(self.engine)
         self.acesso.garantir_admin(os.environ.get("ADMIN_EMAIL"), os.environ.get("ADMIN_SENHA_INICIAL"))
+
+
+def proteger_tabelas(engine) -> None:
+    """Supabase: liga o RLS sem nenhuma regra liberando acesso. Assim a API automática do Supabase
+    (chave "anon") não lê nem altera nada; o backend entra como dono das tabelas e continua funcionando."""
+    from sqlalchemy import text
+    with engine.begin() as conexao:
+        tabelas = conexao.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")).scalars().all()
+        for tabela in tabelas:
+            conexao.execute(text(f'ALTER TABLE public."{tabela}" ENABLE ROW LEVEL SECURITY'))
 
 
 ROTAS_PUBLICAS = {"/api/saude", "/api/entrar", "/api/sair"}
@@ -191,8 +203,8 @@ def create_app(data_dir: Path = DATA_DIR, database_url: str | None = None) -> Fa
 
     # ------------------------------------------------------------- geral
     @app.get("/api/saude")
-    def saude():
-        return {"ok": True, "versao": __version__}
+    def saude(request: Request):
+        return {"ok": True, "versao": __version__, "demo": not s(request).postgres}
 
     @app.get("/api/resumo")
     def resumo(request: Request):

@@ -3,6 +3,9 @@ import { CalendarDays, House, LayoutGrid, Users, Wallet } from "lucide-react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AvisoProvider } from "./componentes/ui";
 import { SeletorTema } from "./lib/tema";
+import { useDados } from "./lib/dados";
+import { SessaoProvider, useSessao } from "./lib/sessao";
+import Entrar from "./paginas/Entrar";
 import Agenda from "./paginas/Agenda";
 import Alunos from "./paginas/Alunos";
 import Caixa from "./paginas/Caixa";
@@ -19,7 +22,20 @@ const MENU = [
 ];
 
 export default function App() {
+  return <SessaoProvider><Portao /></SessaoProvider>;
+}
+
+/** Só mostra o sistema depois do login. */
+function Portao() {
+  const { usuario } = useSessao();
+  if (usuario === undefined) return <div className="carregando-tela"><span className="marca-fd">FD</span></div>;
+  if (usuario === null) return <AvisoProvider><Entrar /></AvisoProvider>;
+  return <Sistema />;
+}
+
+function Sistema() {
   const { pathname } = useLocation();
+  const demo = useDados<{ demo: boolean }>("/saude").dados?.demo;
   const ativo = (para: string) => (para === "/" ? pathname === "/" : pathname.startsWith(para));
   return (
     <AvisoProvider>
@@ -31,11 +47,11 @@ export default function App() {
           ))}
           <NavLink to="/caixa" className={ativo("/caixa") ? "ativa" : ""}><Wallet size={19} /> Caixa</NavLink>
           <div style={{ marginTop: "auto" }}><SeletorTema /></div>
-          <p className="rodape" style={{ marginTop: 8 }}>Versão web 1.0 · sem login (uso de teste)</p>
+          <p className="rodape" style={{ marginTop: 8 }}>Versão web 1.0</p>
         </aside>
         <main className="conteudo">
-          {import.meta.env.VITE_DEMO && (
-            <p className="faixa-demo">Demonstração com dados fictícios · sem login · os testes voltam ao início quando o servidor reinicia</p>
+          {demo && (
+            <p className="faixa-demo">Demonstração com dados fictícios · os testes voltam ao início quando o servidor reinicia</p>
           )}
           <motion.div key={pathname.split("/")[1]} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <Routes>

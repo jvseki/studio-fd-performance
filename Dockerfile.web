@@ -6,7 +6,6 @@ WORKDIR /build
 COPY ["versão-web/frontend/package.json", "versão-web/frontend/package-lock.json", "./"]
 RUN npm ci --no-audit --no-fund
 COPY ["versão-web/frontend/", "./"]
-ENV VITE_DEMO=1
 RUN npm run build
 
 FROM python:3.13-slim
@@ -16,7 +15,9 @@ COPY ["versão-web/backend/requirements.txt", "/tmp/requisitos.txt"]
 RUN pip install --no-cache-dir -r /tmp/requisitos.txt
 COPY studio_fd /app/studio_fd
 COPY migrations /app/migrations
-COPY ["versão-web/backend/app.py", "versão-web/backend/semear_demo.py", "./"]
+COPY ["versão-web/backend/app.py", "versão-web/backend/acesso.py", "versão-web/backend/armazenamento.py", "versão-web/backend/backup_web.py", "versão-web/backend/semear_demo.py", "./"]
 COPY --from=site /build/dist /app/versao-web/frontend/dist
-# A cada vez que o serviço liga, recria os dados FICTÍCIOS de demonstração.
-CMD ["sh", "-c", "python semear_demo.py /tmp/demo && STUDIO_FD_WEB_DATA=/tmp/demo exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Com DATABASE_URL (Supabase): usa o banco de verdade e NÃO cria nada fictício.
+# Sem DATABASE_URL: modo demonstração, recria alunos fictícios a cada vez que liga.
+# --proxy-headers: o Render entrega HTTPS na frente; assim o cookie de login sai marcado como seguro.
+CMD ["sh", "-c", "if [ -z \"$DATABASE_URL\" ]; then python semear_demo.py /tmp/demo && export STUDIO_FD_WEB_DATA=/tmp/demo; fi; exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

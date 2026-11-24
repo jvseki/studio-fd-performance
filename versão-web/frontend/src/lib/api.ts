@@ -10,6 +10,10 @@ async function pedir<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
   } catch {
     throw new ErroApi("Sem conexão com o servidor. Confira se o sistema está ligado.");
   }
+  if (resposta.status === 401 && caminho !== "/entrar") {
+    // Sessão acabou (ou senha trocada): volta para a tela de entrada.
+    window.dispatchEvent(new Event("studiofd:sessao-expirada"));
+  }
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => null);
     const detalhe = corpo?.detail;
@@ -57,3 +61,5 @@ export interface Resumo {
 }
 export interface Configuracoes { personais: Personal[]; horario: { open_time: string; close_time: string; slot_minutes: number }; horarios: string[]; categorias_entrada: string[]; categorias_saida: string[] }
 export const FORMAS = ["Pix", "Dinheiro", "Débito", "Crédito", "Outro"];
+
+export interface Usuario { id: number; email: string; nome: string; papel: "admin" | "equipe"; ativo: boolean }

@@ -6,5 +6,5 @@ uvicorn==0.34.0
 python-multipart==0.0.20
 psycopg[binary]==3.2.3
 
-# Só para os testes (TestClient):
+# Envio dos PDFs ao Supabase Storage (e TestClient nos testes):
 httpx==0.28.1
