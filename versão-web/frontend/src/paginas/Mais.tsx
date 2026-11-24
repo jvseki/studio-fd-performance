@@ -7,6 +7,7 @@ import { useSessao } from "../lib/sessao";
 import { useDados } from "../lib/dados";
 import { brl, hojeIso, mesLongo, paraCentavos, reais } from "../lib/formato";
 import { SeletorTema } from "../lib/tema";
+import { SecaoPwa } from "../lib/instalar";
 
 const ITENS = [
   { para: "/caixa", nome: "Caixa", texto: "Entradas, saídas e saldo", Icone: Wallet },
@@ -23,6 +24,7 @@ function Menu() {
   return (
     <>
       <Topo sobre="Studio FD Performance" titulo="Mais" />
+      <SecaoPwa />
       <section style={{ marginBottom: 16 }}>
         <p className="pequeno fraco" style={{ fontWeight: 800, marginBottom: 8 }}>Aparência</p>
         <SeletorTema />

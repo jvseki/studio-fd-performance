@@ -260,3 +260,6 @@ select.entrada { appearance: none; background-image: url("data:image/svg+xml,%3C
 .carregando-tela { min-height: 100svh; display: grid; place-items: center; }
 .carregando-tela .marca-fd { animation: pulsar 1.2s ease-in-out infinite; }
 @keyframes pulsar { 50% { opacity: .4; } }
+
+.passos { margin: 0; padding-left: 22px; display: grid; gap: 12px; font-size: 16px; line-height: 1.45; }
+.pwa-ok { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 700; color: var(--ouro); }
