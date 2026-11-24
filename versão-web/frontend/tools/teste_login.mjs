@@ -28,7 +28,7 @@ const entrar = async (email, senha) => {
   await limpar('input[name="senha"]');
   await p.type('input[name="senha"]', senha);
   await tocar("button.botao.ouro");
-  await wait(1500);
+  await wait(3000);
 };
 
 await p.goto(BASE + "/", { waitUntil: "networkidle0" });
@@ -43,6 +43,8 @@ ok("entra com a senha certa", (await texto()).includes("Alunos ativos"));
 await p.goto(BASE + "/mais", { waitUntil: "networkidle0" });
 ok("admin vê Usuários", (await texto()).includes("Quem acessa o sistema"));
 await p.goto(BASE + "/mais/usuarios", { waitUntil: "networkidle0" });
+await p.waitForSelector(".lista .cartao.item", { timeout: 30000 }); // espera a lista carregar (internet é mais lenta)
+await wait(600);
 await tocar(".botao", "Novo acesso");
 await p.waitForSelector(".folha input.entrada");
 const campos = await p.$$(".folha input.entrada");
