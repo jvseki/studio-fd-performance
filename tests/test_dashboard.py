@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication
 
 from studio_fd.database.migrations import migrate_database
 from studio_fd.database.session import create_database_engine, create_session_factory
-from studio_fd.services.dashboard_service import DashboardService, next_due
+from studio_fd.services.dashboard_service import DashboardService, is_birthday, next_due
 from studio_fd.services.plan_service import PlanService
 from studio_fd.services.records import PlanInput, StudentInput
 from studio_fd.services.student_service import StudentService
@@ -49,6 +49,33 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(summary.due_this_week, 1)
         self.assertEqual([item.name for item in summary.upcoming], ["Ana", "Bruno"])
         self.assertEqual(summary.by_plan, [("Performance 3x", 1), ("Sem plano", 1)])
+
+    def test_birthdays_today_only_active_students(self):
+        self.students.save(StudentInput("Ana Souza", "(18) 99999-9999", birth_date=date(2000, 11, 5)))
+        self.students.save(StudentInput("Bruno", "18999999999", birth_date=date(1990, 11, 6)))
+        self.students.save(StudentInput("Caio", "18999999999", birth_date=date(1995, 11, 5), active=False))
+        summary = DashboardService(self.sessions).summary(date(2026, 11, 5))
+        self.assertEqual([(item.name, item.age) for item in summary.birthdays], [("Ana Souza", 26)])
+        self.assertIn("wa.me/5518999999999", summary.birthdays[0].whatsapp_url)
+        self.assertIn("Parab%C3%A9ns%2C%20Ana", summary.birthdays[0].whatsapp_url)
+
+    def test_leap_day_birthday_celebrated_on_feb_28(self):
+        self.assertTrue(is_birthday(date(2000, 2, 29), date(2027, 2, 28)))
+        self.assertFalse(is_birthday(date(2000, 2, 29), date(2028, 2, 28)))
+        self.assertTrue(is_birthday(date(2000, 2, 29), date(2028, 2, 29)))
+
+    def test_birthday_panel_shows_on_dashboard(self):
+        app = QApplication.instance() or QApplication([])
+        self.students.save(StudentInput("Ana", "18999999999", birth_date=date.today().replace(year=2000)))  # 2000 é bissexto: vale até em 29/02
+        view = DashboardView(DashboardService(self.sessions))
+        view.show()
+        app.processEvents()
+        self.assertTrue(view.birthday_panel.isVisible())
+        view.announce_birthdays()
+        self.assertEqual(view._birthdays_announced, date.today())
+        view.close()
+        view.deleteLater()
+        app.processEvents()
 
     def test_refresh_replaces_rows_instead_of_stacking(self):
         app = QApplication.instance() or QApplication([])

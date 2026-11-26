@@ -166,7 +166,8 @@ function Backup() {
     <>
       <Topo sobre="Segurança" titulo="Backup" />
       <div className="cartao recheio campos">
-        <p className="fraco">Um arquivo com alunos, agenda, mensalidades, caixa, contratos e anamneses. Guarde uma cópia toda semana em outro lugar (pen drive ou nuvem).</p>
+        <p className="fraco">Um arquivo <b>.fdbkp</b> com alunos, agenda, mensalidades, caixa, contratos e anamneses. Guarde uma cópia toda semana em outro lugar (pen drive ou nuvem).</p>
+        <p className="fraco">É o mesmo formato do programa do computador: lá, em <b>Backup → Restaurar</b>, ele abre este arquivo. As senhas de acesso não vão junto.</p>
         <a className="botao ouro largo" href="/api/backup" download><DatabaseBackup /> Baixar backup agora</a>
       </div>
     </>

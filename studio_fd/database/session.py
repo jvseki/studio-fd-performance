@@ -29,7 +29,9 @@ def create_engine_from_url(url: str) -> Engine:
         url = "postgresql://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):
         url = "postgresql+psycopg://" + url[len("postgresql://"):]
-    return create_engine(url, pool_pre_ping=True, pool_size=3, max_overflow=2, pool_recycle=300)
+    # Conexão sempre criptografada (o Supabase aceita; sem isso o driver poderia aceitar sem TLS).
+    extra = {} if "sslmode=" in url else {"sslmode": "require"}
+    return create_engine(url, pool_pre_ping=True, pool_size=3, max_overflow=2, pool_recycle=300, connect_args=extra)
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:

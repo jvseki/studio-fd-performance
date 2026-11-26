@@ -1,11 +1,58 @@
-import { ChevronRight } from "lucide-react";
+import { Cake, ChevronRight, MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Avatar, Carregando, Entrada, Topo, Vazio } from "../componentes/ui";
-import type { Resumo } from "../lib/api";
+import { Avatar, Carregando, Entrada, Folha, Topo, Vazio } from "../componentes/ui";
+import type { Aniversario, Resumo } from "../lib/api";
 import { useDados } from "../lib/dados";
 import { brl, dataBr, diaLongo, hojeIso } from "../lib/formato";
 
 const saudacao = () => { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; };
+
+// O aviso de parabéns aparece uma vez por dia em cada aparelho (só uma lembrança local).
+const CHAVE_AVISO = "studiofd.aniversarios-avisados";
+function jaAvisou(dia: string) { try { return localStorage.getItem(CHAVE_AVISO) === dia; } catch { return false; } }
+function marcarAvisado(dia: string) { try { localStorage.setItem(CHAVE_AVISO, dia); } catch { /* sem armazenamento: avisa de novo */ } }
+
+function BotaoParabens({ pessoa, classe = "botao mini" }: { pessoa: Aniversario; classe?: string }) {
+  if (!pessoa.whatsapp_url) return null;
+  return <a className={classe} href={pessoa.whatsapp_url} target="_blank" rel="noreferrer"><MessageCircle /> Parabéns</a>;
+}
+
+function Aniversarios({ lista }: { lista: Aniversario[] }) {
+  const hoje = hojeIso();
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => { if (lista.length && !jaAvisou(hoje)) setAberto(true); }, [lista.length, hoje]);
+  if (!lista.length) return null;
+  const fechar = () => { marcarAvisado(hoje); setAberto(false); };
+  return (
+    <>
+      <div className="cartao recheio aniversario">
+        <div className="aniversario-topo"><Cake /> <b>Aniversário hoje</b></div>
+        {lista.map((p) => (
+          <div key={p.student_id} className="aniversario-linha">
+            <Avatar nome={p.name} />
+            <span className="meio"><b>{p.name}</b><span>{p.age} anos</span></span>
+            <BotaoParabens pessoa={p} />
+          </div>
+        ))}
+      </div>
+      <Folha aberta={aberto} titulo="Parabéns! 🎉" aoFechar={fechar}>
+        <p style={{ marginTop: 0, fontSize: 17 }}>Hoje é aniversário de:</p>
+        <div className="lista" style={{ marginBottom: 16 }}>
+          {lista.map((p) => (
+            <div key={p.student_id} className="aniversario-linha">
+              <span style={{ fontSize: 26 }}>🎂</span>
+              <span className="meio"><b>{p.name}</b><span>{p.age} anos</span></span>
+              <BotaoParabens pessoa={p} classe="botao mini ouro" />
+            </div>
+          ))}
+        </div>
+        <p className="pequeno fraco">O botão Parabéns abre o WhatsApp com uma mensagem pronta. Você confere antes de enviar.</p>
+        <div className="acoes"><button className="botao ouro largo" onClick={fechar}>Fechar</button></div>
+      </Folha>
+    </>
+  );
+}
 
 export default function Inicio() {
   const { dados, erro } = useDados<Resumo>("/resumo");
@@ -15,6 +62,7 @@ export default function Inicio() {
   return (
     <>
       <Topo sobre={diaLongo(hojeIso())} titulo={saudacao()} />
+      <Aniversarios lista={dados.birthdays ?? []} />
       <div className="numeros">
         <div className="cartao numero destaque"><span>Alunos ativos</span><strong className="num">{dados.active_students}</strong><small>{dados.total_students} no cadastro</small></div>
         <div className="cartao numero"><span>Atendimentos hoje</span><strong className="num">{dados.today_booked}</strong><small>de {dados.today_capacity} vagas</small></div>

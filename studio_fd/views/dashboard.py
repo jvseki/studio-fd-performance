@@ -1,9 +1,9 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime
 
-from PySide6.QtCore import QDate, QLocale, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath
-from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtCore import QDate, QLocale, QRectF, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPainterPath
+from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QMessageBox, QVBoxLayout, QWidget
 
 from studio_fd.services.dashboard_service import DashboardService, DashboardSummary
 from studio_fd.utils.dates import parse_time
@@ -163,6 +163,22 @@ class DashboardView(QWidget):
         header.addWidget(refresh, 0, Qt.AlignmentFlag.AlignBottom)
         layout.addLayout(header)
 
+        # Aniversariantes do dia: só aparece quando tem alguém fazendo aniversário.
+        self.birthday_panel, birthday_layout = panel(margins=(22, 16, 22, 16), spacing=10)
+        birthday_top = QHBoxLayout()
+        birthday_top.setSpacing(10)
+        birthday_top.addWidget(icon_label("sparkle", theme.GOLD, 18))
+        birthday_top.addWidget(label("Aniversário hoje", "sectionTitle"))
+        birthday_top.addStretch()
+        birthday_layout.addLayout(birthday_top)
+        self.birthday_list = QVBoxLayout()
+        self.birthday_list.setSpacing(8)
+        birthday_layout.addLayout(self.birthday_list)
+        self.birthday_panel.setVisible(False)
+        layout.addWidget(self.birthday_panel)
+        self._birthdays_announced: date | None = None
+        self._birthdays_pending: list = []
+
         grid = QGridLayout()
         grid.setSpacing(14)
         self.active_card = MetricCard("Alunos ativos", "0", "", accent=True, icon_name="users")
@@ -236,7 +252,49 @@ class DashboardView(QWidget):
         self.feedback.setText("")
         self.show_summary(summary)
 
+    def show_birthdays(self, summary: DashboardSummary) -> None:
+        clear(self.birthday_list)
+        self.birthday_panel.setVisible(bool(summary.birthdays))
+        for person in summary.birthdays:
+            line = QHBoxLayout()
+            line.setSpacing(12)
+            line.addWidget(Avatar(person.name, 34))
+            line.addWidget(label(f"🎂  {person.name}  ·  {person.age} anos", "strong", wrap=False), 1)
+            if person.whatsapp_url:
+                send = icon_button("Mandar parabéns", "message", "ghostButton")
+                send.setAccessibleName(f"Mandar parabéns para {person.name} pelo WhatsApp")
+                send.clicked.connect(lambda _checked=False, url=person.whatsapp_url: QDesktopServices.openUrl(QUrl(url)))
+                line.addWidget(send)
+            holder = QWidget()
+            holder.setLayout(line)
+            self.birthday_list.addWidget(holder)
+        today = date.today()
+        if summary.birthdays and self._birthdays_announced != today:
+            self._birthdays_pending = list(summary.birthdays)
+            QTimer.singleShot(600, self, self.announce_birthdays)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._birthdays_pending:
+            QTimer.singleShot(600, self, self.announce_birthdays)
+
+    def announce_birthdays(self) -> None:
+        """Aviso de parabéns uma vez por dia, quando o Dashboard está na tela."""
+        if not self._birthdays_pending or not self.isVisible():
+            return
+        people = self._birthdays_pending
+        self._birthdays_pending = []
+        self._birthdays_announced = date.today()
+        names = "\n".join(f"🎂  {person.name} ({person.age} anos)" for person in people)
+        box = QMessageBox(QMessageBox.Icon.NoIcon, "Parabéns! 🎉",
+                          f"Hoje é aniversário de:\n\n{names}\n\nQue tal mandar os parabéns? "
+                          "Use o botão \"Mandar parabéns\" no Dashboard para abrir o WhatsApp.",
+                          QMessageBox.StandardButton.Ok, self)
+        box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        box.open()
+
     def show_summary(self, summary: DashboardSummary) -> None:
+        self.show_birthdays(summary)
         inactive = max(0, summary.total_students - summary.active_students)
         self.active_card.set_value(str(summary.active_students),
                                    f"{inactive} inativo(s) no cadastro" if inactive else "Todos os cadastros ativos")

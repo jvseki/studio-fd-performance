@@ -104,6 +104,23 @@ def proteger_tabelas(engine) -> None:
         tabelas = conexao.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")).scalars().all()
         for tabela in tabelas:
             conexao.execute(text(f'ALTER TABLE public."{tabela}" ENABLE ROW LEVEL SECURITY'))
+        # Segunda tranca: os papéis da API pública (anon/authenticated) perdem QUALQUER permissão
+        # nas tabelas, sequências e funções — mesmo que alguém desligue o RLS por engano.
+        # Vale também para tabelas criadas no futuro (default privileges).
+        papeis = conexao.execute(text("SELECT rolname FROM pg_roles WHERE rolname IN ('anon', 'authenticated')")).scalars().all()
+        for papel in papeis:
+            for tipo in ("TABLES", "SEQUENCES", "FUNCTIONS"):
+                conexao.execute(text(f'REVOKE ALL ON ALL {tipo} IN SCHEMA public FROM "{papel}"'))
+                conexao.execute(text(f'ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON {tipo} FROM "{papel}"'))
+        conexao.execute(text("REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC"))
+        # Função de busca sem acento: caminho de busca fixo (aviso "search_path mutable" do Supabase).
+        conexao.execute(text("""
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                         WHERE n.nspname = 'public' AND p.proname = 'search_key') THEN
+                ALTER FUNCTION public.search_key(text) SET search_path = pg_catalog;
+              END IF;
+            END $$"""))
 
 
 ROTAS_PUBLICAS = {"/api/saude", "/api/entrar", "/api/sair"}
@@ -118,7 +135,8 @@ def create_app(data_dir: Path = DATA_DIR, database_url: str | None = None) -> Fa
         yield
         app.state.s.engine.dispose()
 
-    app = FastAPI(title="Studio FD Performance", version=__version__, lifespan=lifespan)
+    app = FastAPI(title="Studio FD Performance", version=__version__, lifespan=lifespan,
+                  docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.exception_handler(ValueError)
     async def regra_de_negocio(_request: Request, error: ValueError):
@@ -141,6 +159,21 @@ def create_app(data_dir: Path = DATA_DIR, database_url: str | None = None) -> Fa
                 return JSONResponse(status_code=401, content={"detail": "Entre com seu e-mail e senha."})
             request.state.usuario = usuario
         return await chamar_proxima(request)
+
+    # Registrado depois = roda por fora: vale também para as respostas 401/403 acima.
+    @app.middleware("http")
+    async def cabecalhos_de_seguranca(request: Request, chamar_proxima):
+        resposta = await chamar_proxima(request)
+        h = resposta.headers
+        h.setdefault("X-Content-Type-Options", "nosniff")
+        h.setdefault("X-Frame-Options", "DENY")  # ninguém coloca o sistema dentro de outro site
+        h.setdefault("Referrer-Policy", "no-referrer")
+        h.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if request.headers.get("x-forwarded-proto") == "https":
+            h.setdefault("Strict-Transport-Security", "max-age=31536000")
+        if request.url.path.startswith("/api/"):
+            h["Cache-Control"] = "no-store"  # dados de alunos e PDFs não ficam guardados no navegador/proxy
+        return resposta
 
     def usuario(request: Request) -> Usuario:
         return request.state.usuario

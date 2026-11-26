@@ -53,11 +53,13 @@ export interface Movimento { id: number; day: string; description: string; categ
 export interface Contrato { id: number; student_id: number; student_name: string; signature_type: string; signed_on: string; file_path: string | null; notes: string | null }
 export interface Anamnese { id: number; student_id: number; original_name: string; attached_on: string; size_bytes: number; notes: string | null }
 export interface Ficha { aluno: Aluno; horarios_fixos: string[]; proximos: Atendimento[]; mensalidades: Mensalidade[]; contratos: Contrato[]; anamneses: Anamnese[] }
+export interface Aniversario { student_id: number; name: string; age: number; phone: string; whatsapp_url: string | null }
 export interface Resumo {
   active_students: number; total_students: number; monthly_revenue_cents: number; received_month_cents: number;
   overdue_count: number; overdue_cents: number; today_booked: number; today_capacity: number;
   today_rows: [string, (string | null)[]][]; trainer_names: string[];
   upcoming: { student_id: number; name: string; plan_name: string | null; fee_cents: number | null; due_date: string; days: number }[];
+  birthdays: Aniversario[];
 }
 export interface Configuracoes { personais: Personal[]; horario: { open_time: string; close_time: string; slot_minutes: number }; horarios: string[]; categorias_entrada: string[]; categorias_saida: string[] }
 export const FORMAS = ["Pix", "Dinheiro", "Débito", "Crédito", "Outro"];

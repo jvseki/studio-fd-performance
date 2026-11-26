@@ -10,6 +10,12 @@ def greeting(full_name: str) -> str:
     return f"Olá, {first_name}! Aqui é do Studio FD Performance. Tudo bem?"
 
 
+def birthday_message(full_name: str) -> str:
+    first_name = full_name.strip().split()[0] if full_name.strip() else ""
+    return (f"Parabéns, {first_name}! 🎉 Toda a equipe do Studio FD Performance deseja um feliz aniversário, "
+            "muita saúde e ótimos treinos!")
+
+
 def chat_url(phone: str, message: str = "") -> str:
     number = normalize_phone(phone)
     if len(message) > 2000:

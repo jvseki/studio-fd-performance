@@ -14,6 +14,35 @@ from sqlalchemy import func, select
 from studio_fd.models import Payment, Student
 from studio_fd.repositories.student_repository import StudentRepository
 from studio_fd.services.agenda_service import AgendaService
+from studio_fd.services.whatsapp_service import birthday_message, chat_url
+
+
+@dataclass(frozen=True)
+class Birthday:
+    student_id: int
+    name: str
+    age: int
+    phone: str
+    whatsapp_url: str | None
+
+
+def is_birthday(birth: date, today: date) -> bool:
+    """Quem nasceu em 29/02 comemora em 28/02 nos anos que não são bissextos."""
+    if (birth.month, birth.day) == (today.month, today.day):
+        return True
+    return (birth.month, birth.day) == (2, 29) and (today.month, today.day) == (2, 28) and not calendar.isleap(today.year)
+
+
+def birthdays(students, today: date) -> list[Birthday]:
+    found = []
+    for student in students:
+        if student.active and student.birth_date and is_birthday(student.birth_date, today):
+            try:
+                url = chat_url(student.phone, birthday_message(student.full_name))
+            except ValueError:
+                url = None
+            found.append(Birthday(student.id, student.full_name, today.year - student.birth_date.year, student.phone, url))
+    return sorted(found, key=lambda item: item.name.casefold())
 
 
 @dataclass(frozen=True)
@@ -42,6 +71,7 @@ class DashboardSummary:
     received_month_cents: int = 0
     overdue_count: int = 0
     overdue_cents: int = 0
+    birthdays: list[Birthday] = field(default_factory=list)
 
 
 def next_due(due_day: int, today: date) -> date:
@@ -65,6 +95,7 @@ class DashboardService:
             active_count = StudentRepository(session).count_active()
             students = list(session.scalars(select(Student).options(joinedload(Student.plan))))
             active = [student for student in students if student.active]
+            birthday_list = birthdays(active, today)
             fees = [student.monthly_fee_cents for student in active if student.monthly_fee_cents]
             upcoming = []
             for student in active:
@@ -101,4 +132,5 @@ class DashboardService:
             received_month_cents=received,
             overdue_count=overdue[0],
             overdue_cents=overdue[1],
+            birthdays=birthday_list,
         )

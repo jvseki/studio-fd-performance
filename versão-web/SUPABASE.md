@@ -107,13 +107,36 @@ Se o Supabase mostrar o aviso "RLS enabled, no policies", é exatamente isso que
 4. Depois do primeiro acesso, pode **apagar** a `ADMIN_SENHA_INICIAL` do Render
    (ela só é usada quando o banco ainda não tem nenhum usuário).
 
-## 8. Cuidados do plano grátis
+## 8. Trancas de segurança (já ligadas)
+
+O sistema faz isso sozinho toda vez que liga:
+
+- **RLS ligado** em todas as tabelas, sem nenhuma regra liberando acesso.
+- **Permissões retiradas** dos papéis públicos `anon` e `authenticated` (tabelas, sequências
+  e funções, inclusive as que forem criadas no futuro). Mesmo que alguém desligue o RLS por
+  engano, a chave pública continua sem ler nada.
+- **Conexão criptografada** (SSL obrigatório) entre o Render e o banco.
+- **Bucket `documentos` privado**: os PDFs só saem pelo sistema, depois do login.
+- O servidor não deixa o navegador guardar dados em cache e não deixa o sistema
+  ser aberto dentro de outro site.
+
+Falta só uma coisa, que é no painel e você faz uma vez:
+
+1. **Desligar a API automática** (o sistema não usa): ⚙️ **Project Settings** → **Data API**
+   → desligue **Enable Data API** (ou, em *Exposed schemas*, tire o `public`) → **Save**.
+2. **Trocar a senha do banco**, porque ela já apareceu em conversa:
+   ⚙️ **Project Settings** → **Database** → **Reset database password** → gere uma nova →
+   atualize o `DATABASE_URL` no Render (**Environment**) e no `backend/.env`.
+3. **Security Advisor** (menu lateral → **Advisors** → **Security**): deve ficar sem erros.
+
+## 9. Cuidados do plano grátis
 
 - **Pausa:** o Supabase pausa o projeto depois de cerca de **1 semana sem uso**. Usando todo dia,
   não acontece. Se pausar: painel do Supabase → **Restore project**.
 - **Backup:** o plano grátis não garante backup que você possa restaurar. Toda semana,
   no sistema: **Mais → Backup → Baixar backup agora** e guarde o arquivo fora
-  (pen drive ou Google Drive). O arquivo leva todos os dados e PDFs, sem as senhas.
+  (pen drive ou Google Drive). O arquivo leva todos os dados e PDFs, sem as senhas, e
+  abre no programa do computador (**Backup → Restaurar**).
 - **Limites** (confira no site, mudam com o tempo): ~500 MB de banco e ~1 GB de arquivos —
   sobra para centenas de alunos.
 - **LGPD:** anamnese é dado de saúde. Só crie acesso para quem precisa, não compartilhe

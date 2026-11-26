@@ -69,6 +69,44 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(backup.status_code, 200)
         self.assertTrue(backup.content.startswith(b"PK"))
 
+    def test_backup_web_abre_no_programa_do_computador(self):
+        import backup_web
+        from studio_fd.services.backup_service import BackupService
+        from studio_fd.utils.paths import AppPaths
+        services = self.client.app.state.s
+        aluno = self.aluno("Elisa", birth_date="1990-03-04")
+        self.client.post(f"/api/alunos/{aluno}/anamneses", files={"arquivo": ("a.pdf", b"%PDF-1.4 ficticio", "application/pdf")})
+        nome, conteudo = backup_web.exportar(services.engine, {"contratos": services.paths.contracts, "anamneses": services.paths.anamneses}, services.storage)
+        self.assertTrue(nome.endswith(".fdbkp"))
+        arquivo = Path(self.temp.name) / nome
+        arquivo.write_bytes(conteudo)
+        computador = AppPaths(Path(self.temp.name) / "computador")
+        computador.ensure_directories()
+        info = BackupService(computador, "teste").inspect(arquivo)
+        self.assertEqual((info.counts["alunos"], info.counts["anamneses"]), (1, 1))
+        # restaura como o programa do computador faz: prepara, e aplica na próxima abertura
+        from studio_fd.database.migrations import migrate_database
+        from studio_fd.database.session import create_database_engine
+        vazio = create_database_engine(computador.database)
+        migrate_database(vazio)
+        vazio.dispose()
+        BackupService(computador, "teste").stage_restore(arquivo)
+        self.assertTrue(BackupService.apply_pending(computador))
+        restaurado = create_database_engine(computador.database)
+        with restaurado.connect() as conexao:
+            self.assertEqual(conexao.exec_driver_sql("SELECT full_name, birth_date FROM students").all(), [("Elisa", "1990-03-04")])
+        restaurado.dispose()
+        self.assertEqual(len(list(computador.anamneses.rglob("*.pdf"))), 1)
+
+    def test_aniversario_no_resumo(self):
+        hoje = date.today()
+        nascimento = hoje.replace(year=2000)  # 2000 é bissexto: vale até em 29/02
+        self.aluno("Fabi", birth_date=str(nascimento))
+        self.aluno("Gui", birth_date=str((hoje + timedelta(days=1)).replace(year=2000)))
+        lista = self.client.get("/api/resumo").json()["birthdays"]
+        self.assertEqual([(p["name"], p["age"]) for p in lista], [("Fabi", hoje.year - 2000)])
+        self.assertIn("wa.me/55", lista[0]["whatsapp_url"])
+
     def test_erros_viram_mensagem(self):
         self.assertEqual(self.client.post("/api/alunos", json={"full_name": " ", "phone": "1"}).status_code, 400)
         self.assertEqual(self.client.get("/api/alunos/999").status_code, 400)
